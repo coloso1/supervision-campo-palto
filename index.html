@@ -44,7 +44,6 @@ tr:hover td{background:#FAFBF6}
     <div class="flex items-center justify-between gap-2">
       <div>
         <h1 class="text-base sm:text-lg font-extrabold tracking-tight">Supervisión Fitosanitaria</h1>
-        <!-- Indicador de Fecha de Sincronización del Excel -->
         <p class="text-[11px] text-sol font-semibold flex items-center gap-1">
           <span>📅 Actualizado al:</span>
           <span id="lblSyncDate" class="bg-[#384131] px-2 py-0.5 rounded-md text-white font-mono">Cargando...</span>
@@ -59,6 +58,7 @@ tr:hover td{background:#FAFBF6}
     <!-- Pestañas de Navegación -->
     <nav class="flex gap-1 overflow-x-auto pb-1" aria-label="Secciones">
       <button class="tab on" data-tab="dash">📊 Dashboard</button>
+      <button class="tab" data-tab="cob">🎯 Cobertura Lote</button>
       <button class="tab" data-tab="ll">🚜 Llegada</button>
       <button class="tab" data-tab="epp">🛡️ EPPs</button>
       <button class="tab" data-tab="hid">💧 Aplicaciones</button>
@@ -102,6 +102,73 @@ tr:hover td{background:#FAFBF6}
 <div id="banner" class="hidden max-w-7xl mx-auto mt-2 mx-3 px-3 py-2 rounded-lg bg-amber-100 text-amber-900 text-xs"></div>
 
 <main class="max-w-7xl mx-auto px-3 py-3">
+
+  <!-- MÓDULO: CONTROL DE COBERTURA Y HECTÁREAS FALTANTES POR LOTE -->
+  <section id="v-cob" class="hidden space-y-4">
+    <div class="card p-3 bg-white space-y-2">
+      <h2 class="font-extrabold text-sm text-vid flex items-center gap-1">🎯 Consulta de Cobertura y Hectáreas Faltantes por Lote</h2>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+        <div>
+          <label class="text-xs text-slate-500 font-semibold">1. Selecciona Lote:</label>
+          <select id="cobLote" class="inp mt-0.5"><option value="">Selecciona un Lote…</option></select>
+        </div>
+        <div>
+          <label class="text-xs text-slate-500 font-semibold">2. Selecciona N° Aplicación:</label>
+          <select id="cobNAplic" class="inp mt-0.5"><option value="">Todas las Aplicaciones</option></select>
+        </div>
+        <div class="flex items-end">
+          <button id="btnCleanCOB" class="btn-clean w-full">🧹 Limpiar Selección</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tarjetas KPI de Cobertura -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+      <div class="card p-3 border-l-4 border-l-blue-600">
+        <p class="text-[10px] text-slate-500">Ha Oficial Lote</p>
+        <p id="cobK1" class="text-2xl font-extrabold">0.00 <span class="text-xs font-normal">Ha</span></p>
+      </div>
+      <div class="card p-3 border-l-4 border-l-vid">
+        <p class="text-[10px] text-slate-500">Ha Aplicadas (Avanzadas)</p>
+        <p id="cobK2" class="text-2xl font-extrabold">0.00 <span class="text-xs font-normal">Ha</span></p>
+      </div>
+      <div class="card p-3 border-l-4 border-l-amber-500">
+        <p class="text-[10px] text-slate-500">Ha Faltantes por Aplicar</p>
+        <p id="cobK3" class="text-2xl font-extrabold text-amber-600">0.00 <span class="text-xs font-normal">Ha</span></p>
+      </div>
+      <div class="card p-3 border-l-4 border-l-purple-600">
+        <p class="text-[10px] text-slate-500">% Porcentaje Avance</p>
+        <p id="cobK4" class="text-2xl font-extrabold">0%</p>
+      </div>
+    </div>
+
+    <!-- Barra de Progreso Visual -->
+    <div class="card p-3 bg-white space-y-1">
+      <div class="flex justify-between items-center text-xs font-bold">
+        <span>Progreso de Cobertura Fitosanitaria del Lote:</span>
+        <span id="cobBarPct" class="text-vid">0%</span>
+      </div>
+      <div class="w-full bg-slate-200 rounded-full h-3.5 overflow-hidden">
+        <div id="cobBarFill" class="bg-vid h-3.5 rounded-full transition-all duration-500" style="width: 0%"></div>
+      </div>
+    </div>
+
+    <!-- Tabla 1: Resumen del Lote -->
+    <div class="space-y-2">
+      <h3 class="font-semibold text-xs sm:text-sm">Estado General del Lote y Aplicaciones</h3>
+      <div id="cobT" class="card overflow-auto max-h-[40vh]"></div>
+    </div>
+
+    <!-- Tabla 2: Detalle de las Órdenes de Trabajo (OT) y Productos Químicos -->
+    <div class="space-y-2 bg-white p-3 rounded-lg border border-slate-200">
+      <div class="flex justify-between items-center">
+        <h3 class="font-bold text-xs sm:text-sm text-vid">📋 Detalle de OTs, Productos Químicos y Dosis Correspondientes</h3>
+        <span id="lblOtCount" class="text-[10px] bg-agua text-white font-bold px-2 py-0.5 rounded-md">0 OTs encontradas</span>
+      </div>
+      <p class="text-[11px] text-slate-500 mb-1">Muestra los productos, dosis/Ha y volumen total retirado de almacén para la aplicación seleccionada.</p>
+      <div id="cobOtTable" class="card overflow-auto max-h-[50vh]"></div>
+    </div>
+  </section>
 
   <!-- VISTA: DASHBOARD -->
   <section id="v-dash" class="space-y-4">
@@ -263,9 +330,20 @@ tr:hover td{background:#FAFBF6}
 </main>
 
 <script>
-/* ===== URL de Apps Script ===== */
-const API_URL = 'https://script.google.com/macros/s/AKfycbwE_4J7c7WuFP-P66Ie9uTOUHnPaYD5pt0FkGY2I7HhE1BCCKKCj7v3z-spI30aq59l/exec';
-/* ============================== */
+/* ===== NUEVA URL DE APPS SCRIPT ===== */
+const API_URL = 'https://script.google.com/macros/s/AKfycbyaQG8sZu168v-aa2yPfrRVfgZAoLVgFhLB_Zxt0YXE2t9lRgxAIKLTlGdnA9P7Is1G/exec';
+/* ==================================== */
+
+/* TABLA DE HECTÁREAS OFICIALES POR LOTE DE Ha.xlsx */
+const HA_OFICIAL_LOTES = {
+  'D3 - A': 8.83, 'D3 -B': 9.00, 'D3-B': 9.00, 'D3 - C': 8.74,
+  'D8': 24.65, 'D9': 19.18, 'C9': 11.18, 'C10': 17.04,
+  'C11': 21.88, 'C12': 21.92, 'C13': 19.45, 'C14': 21.67,
+  'D10': 23.24, 'D11': 23.90, 'D13': 22.17, 'D15': 11.97,
+  'C15': 16.56, 'B15': 14.77, 'B16': 8.37, 'D12': 22.63,
+  'D14': 21.05, 'D2': 16.36, 'B12': 14.30, 'A15': 18.18,
+  'A16': 11.07
+};
 
 const LIDERES = { 'Tarde': 'Flores Peña', 'Madrugada': 'Alonso Tipismana' };
 const TURNOS = ['Día', 'Tarde', 'Madrugada'];
@@ -364,6 +442,7 @@ async function load() {
       r._h = ft(g(r, 'horainicio')); 
       r._t = tn(g(r, 'turno')) || tt(r._h);
       r._cult = String(g(r, 'cultivo') || '').toUpperCase();
+      r._naplic = String(g(r, 'nroaplic') || g(r, 'naplic') || g(r, 'nroaplicacion') || '').trim();
     });
     
     d.alm.forEach(r => {
@@ -380,7 +459,6 @@ async function load() {
       r._aRet = dtRet && !isNaN(dtRet) ? dtRet.getFullYear() : 2026;
     });
 
-    // Actualizar etiqueta de Fecha de Sincronización del Excel
     if (raw.ultimaActualizacion) {
       $('lblSyncDate').textContent = raw.ultimaActualizacion;
     } else {
@@ -440,6 +518,11 @@ function updateDynamicSelects() {
   fill('aProd', 'Todos los Productos', [...prods].sort());
 
   fill('rvpLote', 'Todos los Lotes', uniq([].concat(S.d.alm, S.d.apl), 'lote'));
+
+  // Lotes y N° de Aplicación para el Módulo de Cobertura
+  const listLotesCob = Object.keys(HA_OFICIAL_LOTES).concat(uniq([].concat(S.d.alm, S.d.apl), 'lote'));
+  fill('cobLote', 'Selecciona un Lote…', [...new Set(listLotesCob)].sort());
+  fill('cobNAplic', 'Todas las Aplicaciones', uniq([].concat(S.d.alm, S.d.apl), '_naplic'));
 }
 
 const badge = (t, c) => `<span class="px-2 py-0.5 rounded-full text-xs font-semibold ${c}">${esc(t)}</span>`;
@@ -466,9 +549,9 @@ function render() {
   
   updateDynamicSelects();
 
-  ['dash', 'll', 'epp', 'hid', 'alm', 'rvp', 'mes'].forEach(t => $('v-' + t).classList.toggle('hidden', t !== S.tab));
+  ['dash', 'll', 'epp', 'hid', 'alm', 'rvp', 'mes', 'cob'].forEach(t => $('v-' + t).classList.toggle('hidden', t !== S.tab));
   document.querySelectorAll('.tab').forEach(b => b.classList.toggle('on', b.dataset.tab === S.tab));
-  ({ dash: rDash, ll: rLL, epp: rEPP, hid: rHid, alm: rAlm, rvp: rRvP, mes: rMes })[S.tab]();
+  ({ dash: rDash, ll: rLL, epp: rEPP, hid: rHid, alm: rAlm, rvp: rRvP, mes: rMes, cob: rCob })[S.tab]();
 }
 
 function rDash() {
@@ -526,6 +609,124 @@ function rDash() {
   const by = {}; base(apl).forEach(r => { const k = g(r, 'tractor') || g(r, 'codtractor') || '—'; by[k] = (by[k] || 0) + num(g(r, 'haaplicadas')); });
   const top = Object.entries(by).sort((a, b) => b[1] - a[1]).slice(0, 10);
   chart('c2', 'bar', top.map(x => x[0]), top.map(x => +x[1].toFixed(1)), '#2E6B4A');
+}
+
+/* FUNCION: MÓDULO DE COBERTURA, HECTÁREAS FALTANTES Y DETALLE DE OTs POR LOTE */
+function rCob() {
+  const loteSel = $('cobLote').value;
+  const nAplicSel = $('cobNAplic').value;
+
+  // Hectáreas Oficiales de Ha.xlsx
+  let haOficial = 0;
+  if (loteSel && HA_OFICIAL_LOTES[loteSel]) {
+    haOficial = HA_OFICIAL_LOTES[loteSel];
+  } else if (!loteSel) {
+    haOficial = Object.values(HA_OFICIAL_LOTES).reduce((a, b) => a + b, 0);
+  }
+
+  // Filtrar datasets de Almacén y Aplicaciones
+  const almFilter = S.d.alm.filter(r => (!loteSel || g(r, 'lote') === loteSel) && (!nAplicSel || r._naplic === nAplicSel));
+  const aplFilter = S.d.apl.filter(r => (!loteSel || g(r, 'lote') === loteSel) && (!nAplicSel || r._naplic === nAplicSel));
+
+  // Si no se encuentra en la lista oficial, tomar el valor programado de Almacén
+  if (haOficial === 0) {
+    const lotesProg = {};
+    almFilter.forEach(r => {
+      const l = g(r, 'lote');
+      const ha = num(g(r, 'haaplic'));
+      if (l) lotesProg[l] = Math.max(lotesProg[l] || 0, ha);
+    });
+    haOficial = Object.values(lotesProg).reduce((a, b) => a + b, 0);
+  }
+
+  // Hectáreas Aplicadas Reales
+  const haAplicTotal = aplFilter.reduce((s, r) => s + num(g(r, 'haaplicadas')), 0);
+  const haFaltantes = Math.max(0, haOficial - haAplicTotal);
+  const pctAvance = haOficial > 0 ? Math.min(100, ((haAplicTotal / haOficial) * 100)).toFixed(1) : (haAplicTotal > 0 ? 100 : 0);
+
+  $('cobK1').textContent = haOficial.toFixed(2) + ' Ha';
+  $('cobK2').textContent = haAplicTotal.toFixed(2) + ' Ha';
+  $('cobK3').textContent = haFaltantes.toFixed(2) + ' Ha';
+  $('cobK4').textContent = pctAvance + '%';
+
+  // Barra de progreso
+  $('cobBarPct').textContent = pctAvance + '%';
+  $('cobBarFill').style.width = pctAvance + '%';
+  if (pctAvance >= 98) {
+    $('cobBarFill').className = 'bg-green-600 h-3.5 rounded-full transition-all duration-500';
+  } else if (pctAvance >= 50) {
+    $('cobBarFill').className = 'bg-amber-500 h-3.5 rounded-full transition-all duration-500';
+  } else {
+    $('cobBarFill').className = 'bg-red-500 h-3.5 rounded-full transition-all duration-500';
+  }
+
+  // TABLA 1: Resumen de Cobertura por Lote
+  const mapLotes = {};
+  almFilter.forEach(r => {
+    const lKey = g(r, 'lote');
+    const key = `${lKey}_${r._naplic}`;
+    if (!mapLotes[key]) {
+      const haLote = HA_OFICIAL_LOTES[lKey] || num(g(r, 'haaplic'));
+      mapLotes[key] = {
+        lote: lKey,
+        nAplic: r._naplic,
+        haOficial: haLote,
+        haReal: 0
+      };
+    }
+  });
+
+  aplFilter.forEach(r => {
+    const lKey = g(r, 'lote');
+    const key = `${lKey}_${r._naplic}`;
+    if (mapLotes[key]) {
+      mapLotes[key].haReal += num(g(r, 'haaplicadas'));
+    } else {
+      const haLote = HA_OFICIAL_LOTES[lKey] || num(g(r, 'haaplicadas'));
+      mapLotes[key] = {
+        lote: lKey,
+        nAplic: r._naplic,
+        haOficial: haLote,
+        haReal: num(g(r, 'haaplicadas'))
+      };
+    }
+  });
+
+  const rowsData = Object.values(mapLotes).map(item => {
+    const falt = Math.max(0, item.haOficial - item.haReal);
+    const pct = item.haOficial > 0 ? ((item.haReal / item.haOficial) * 100).toFixed(1) : 100;
+    return { ...item, falt, pct };
+  }).sort((a, b) => b.falt - a.falt);
+
+  const stBadge = pct => {
+    if (pct >= 98) return badge('COMPLETADO', G);
+    if (pct >= 50) return badge('EN PROGRESO', Y);
+    return badge('PENDIENTE', R);
+  };
+
+  $('cobT').innerHTML = table([
+    ['Lote', r => `<b>${esc(r.lote)}</b>`],
+    ['N° Aplic.', r => esc(r.nAplic || '—')],
+    ['Ha Oficial', r => `${num(r.haOficial).toFixed(2)} Ha`],
+    ['Ha Aplicadas', r => `<b>${num(r.haReal).toFixed(2)} Ha</b>`],
+    ['Ha Faltantes', r => `<b class="text-amber-600">${num(r.falt).toFixed(2)} Ha</b>`],
+    ['% Cobertura', r => `${r.pct}%`],
+    ['Estado', r => stBadge(r.pct)]
+  ], rowsData);
+
+  // TABLA 2: Detalle de OTs, Productos Químicos y Dosis Correspondientes
+  $('lblOtCount').textContent = `${almFilter.length} OTs encontradas`;
+  $('cobOtTable').innerHTML = table([
+    ['OT Almacén', r => `<b>${esc(g(r, 'ordentrabajo'))}</b>`],
+    ['N° Aplic.', r => esc(r._naplic)],
+    ['Lote', r => esc(g(r, 'lote'))],
+    ['Fecha Retiro', r => r._fRet || '—'],
+    ['Fecha Aplic.', r => r._fApl || '—'],
+    ['Ha Programadas', r => `${num(g(r, 'haaplic')).toFixed(2)} Ha`],
+    ['Producto + Dosis / Ha', r => `<span class="text-vid font-bold">${esc(g(r, 'nombreproductodosis_ha'))}</span>`],
+    ['Volumen Total', r => `<b>${esc(g(r, 'total_producto'))} ${esc(g(r, 'um'))}</b>`],
+    ['Estado OT', r => badge(g(r, 'estadoot') || 'APROBADO', Y)]
+  ], almFilter);
 }
 
 function chart(id, type, labels, data, color) {
@@ -818,8 +1019,12 @@ $('btnCleanHID').onclick = () => { $('hTurnoSec').value = ''; $('hLote').value =
 $('btnCleanALM').onclick = () => { $('aLote').value = ''; $('aNAplic').value = ''; $('aProd').value = ''; $('aEst').value = ''; $('aOT').value = ''; render(); };
 $('btnCleanRVP').onclick = () => { $('rvpLote').value = ''; $('rvpOT').value = ''; render(); };
 $('btnCleanMES').onclick = () => { $('mStart').value = '1'; $('mEnd').value = '12'; render(); };
+$('btnCleanCOB').onclick = () => { $('cobLote').value = ''; $('cobNAplic').value = ''; render(); };
 
-['llFundo', 'llQ', 'eTipo', 'eEst', 'eQ', 'hTurnoSec', 'hLote', 'hCult', 'hTr', 'hOT', 'hCum', 'aLote', 'aNAplic', 'aProd', 'aEst', 'aOT', 'rvpLote', 'rvpOT', 'mStart', 'mEnd', 'mAnno'].forEach(id => $(id).addEventListener('input', render));
+['llFundo', 'llQ', 'eTipo', 'eEst', 'eQ', 'hTurnoSec', 'hLote', 'hCult', 'hTr', 'hOT', 'hCum', 'aLote', 'aNAplic', 'aProd', 'aEst', 'aOT', 'rvpLote', 'rvpOT', 'mStart', 'mEnd', 'mAnno', 'cobLote', 'cobNAplic'].forEach(id => {
+  const el = $(id);
+  if (el) el.addEventListener('input', render);
+});
 
 load();
 </script>
