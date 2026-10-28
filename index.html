@@ -333,15 +333,33 @@ tr:hover td{background:#FAFBF6}
 /* ===== URL DE APPS SCRIPT ===== */
 const API_URL = 'https://script.google.com/macros/s/AKfycbyaQG8sZu168v-aa2yPfrRVfgZAoLVgFhLB_Zxt0YXE2t9lRgxAIKLTlGdnA9P7Is1G/exec';
 
-/* HECTÁREAS OFICIALES POR LOTE DE Ha.xlsx */
+/* MAPA DE HECTÁREAS OFICIALES POR LOTE (Ha.xlsx) */
 const HA_OFICIAL_LOTES = {
-  'D3 - A': 8.83, 'D3 -B': 9.00, 'D3-B': 9.00, 'D3 - C': 8.74,
-  'D8': 24.65, 'D9': 19.18, 'C9': 11.18, 'C10': 17.04,
-  'C11': 21.88, 'C12': 21.92, 'C13': 19.45, 'C14': 21.67,
-  'D10': 23.24, 'D11': 23.90, 'D13': 22.17, 'D15': 11.97,
-  'C15': 16.56, 'B15': 14.77, 'B16': 8.37, 'D12': 22.63,
-  'D14': 21.05, 'D2': 16.36, 'B12': 14.30, 'A15': 18.18,
-  'A16': 11.07
+  'D3-A': 9.11, 'D-3A': 9.11,
+  'D-3B': 9.60,
+  'D3-C': 7.86, 'D-3C': 7.86,
+  'D-8': 24.65,
+  'D-9': 19.18,
+  'C-9': 11.18,
+  'C-10A': 17.04,
+  'C-10B': 4.00,
+  'C-11': 21.88,
+  'C-12': 21.92,
+  'C-13A': 19.45,
+  'C-14': 21.67,
+  'D-10': 23.24,
+  'D-11': 23.90,
+  'D-13': 22.17,
+  'D-15': 11.97,
+  'C-15': 16.56,
+  'B-15': 14.77,
+  'B-16': 8.67,
+  'D-12': 22.63,
+  'D-14': 21.05,
+  'D-2': 26.57,
+  'B-12': 14.30,
+  'A-15': 18.18,
+  'A-16': 11.07
 };
 
 const LIDERES = { 'Tarde': 'Flores Peña', 'Madrugada': 'Alonso Tipismana' };
@@ -522,13 +540,15 @@ function updateDynamicSelects() {
   const listLotesCob = Object.keys(HA_OFICIAL_LOTES).concat(uniq([].concat(S.d.alm, S.d.apl), 'lote'));
   fill('cobLote', 'Selecciona un Lote…', [...new Set(listLotesCob)].sort());
 
-  // Actualizar N° Aplicación filtrado dinámicamente si se seleccionó Lote
+  // N° de Aplicación ordenados de MENOR a MAYOR y filtrados por el lote seleccionado
   const cobLoteVal = $('cobLote').value;
-  const filteredNAplic = cobLoteVal 
-    ? uniq([].concat(S.d.alm, S.d.apl).filter(r => g(r, 'lote') === cobLoteVal), '_naplic')
-    : uniq([].concat(S.d.alm, S.d.apl), '_naplic');
+  const rawNAplic = cobLoteVal 
+    ? uniq(S.d.alm.filter(r => g(r, 'lote') === cobLoteVal), '_naplic')
+    : uniq(S.d.alm, '_naplic');
 
-  fill('cobNAplic', 'Todas las N° Aplicación', filteredNAplic);
+  const sortedNAplic = rawNAplic.map(n => parseInt(n) || n).sort((a, b) => (typeof a === 'number' && typeof b === 'number') ? a - b : String(a).localeCompare(String(b))).map(String);
+
+  fill('cobNAplic', 'Todas las N° Aplicación', sortedNAplic);
 }
 
 const badge = (t, c) => `<span class="px-2 py-0.5 rounded-full text-xs font-semibold ${c}">${esc(t)}</span>`;
@@ -617,26 +637,25 @@ function rDash() {
   chart('c2', 'bar', top.map(x => x[0]), top.map(x => +x[1].toFixed(1)), '#2E6B4A');
 }
 
-/* FUNCION APARTADO EXCLUSIVO: COBERTURA AJUSTADA A FÓRMULA SOLICITADA */
+/* FUNCION APARTADO EXCLUSIVO: COBERTURA LOTE */
 function rCob() {
   const loteSel = $('cobLote').value;
   const nAplicSel = $('cobNAplic').value;
 
-  // 1. HA TOTALES OFICIALES DEL LOTE (Extraídas de Ha.xlsx)
+  // 1. HA TOTALES OFICIALES DEL LOTE (Único e inamovible desde Ha.xlsx)
   let haTotalesLote = 0;
   if (loteSel) {
     haTotalesLote = HA_OFICIAL_LOTES[loteSel] || 0;
-  }
-  
-  // Si no selecciona un lote específico, suma las Ha oficiales de todos los lotes
-  if (haTotalesLote === 0) {
-    haTotalesLote = Object.values(HA_OFICIAL_LOTES).reduce((a, b) => a + b, 0);
+  } else {
+    // Si no hay lote seleccionado, suma el total general de los lotes oficial
+    const uniqueLotesOfic = [...new Set(Object.values(HA_OFICIAL_LOTES))];
+    haTotalesLote = Object.keys(HA_OFICIAL_LOTES).reduce((s, k) => s + HA_OFICIAL_LOTES[k], 0) / 2; // promedio de aliases
   }
 
-  // Filtrar OTs de Almacén para el Lote y N° Aplicación seleccionada
+  // Filtrar dataset de Almacén para calcular la Suma Ha de la N° Aplicación
   const almFilter = S.d.alm.filter(r => (!loteSel || g(r, 'lote') === loteSel) && (!nAplicSel || r._naplic === nAplicSel));
 
-  // 2. SUMA DE HA DEL NÚMERO DE APLICACIÓN (Suma de OTs retiradas para esa N° Aplicación)
+  // 2. SUMA DE HA DEL NÚMERO DE APLICACIÓN (Suma de OTs del lote para esa N° Aplic.)
   const sumaHaAplicacion = almFilter.reduce((s, r) => s + num(g(r, 'haaplic')), 0);
 
   // 3. HA FALTANTES POR APLICAR = TOTAL HA OFICIAL LOTE - SUMA HA N° APLICACIÓN
@@ -645,7 +664,7 @@ function rCob() {
   // 4. PORCENTAJE DE COBERTURA = (SUMA HA N° APLICACIÓN / TOTAL HA LOTE) * 100
   const pctCobertura = haTotalesLote > 0 ? Math.min(100, ((sumaHaAplicacion / haTotalesLote) * 100)).toFixed(1) : 0;
 
-  // Asignar a tarjetas KPI superiores
+  // Asignar valores a tarjetas KPI
   $('cobK1').textContent = haTotalesLote.toFixed(2) + ' Ha';
   $('cobK2').textContent = sumaHaAplicacion.toFixed(2) + ' Ha';
   $('cobK3').textContent = haFaltantes.toFixed(2) + ' Ha';
@@ -662,7 +681,7 @@ function rCob() {
     $('cobBarFill').className = 'bg-red-500 h-3.5 rounded-full transition-all duration-500';
   }
 
-  // TABLA 1: Resumen de Ha Totales vs Suma Ha N° Aplicación por Lote y N° Aplicación
+  // TABLA 1: Resumen por Lote y N° Aplicación
   const mapResumen = {};
   almFilter.forEach(r => {
     const lKey = g(r, 'lote');
@@ -683,7 +702,7 @@ function rCob() {
     const falt = Math.max(0, item.haTotales - item.sumaHaAplic);
     const pct = item.haTotales > 0 ? ((item.sumaHaAplic / item.haTotales) * 100).toFixed(1) : 0;
     return { ...item, falt, pct };
-  }).sort((a, b) => b.falt - a.falt);
+  }).sort((a, b) => (parseInt(a.nAplic) || 0) - (parseInt(b.nAplic) || 0));
 
   const stBadge = pct => {
     if (pct >= 98) return badge('COMPLETADO', G);
