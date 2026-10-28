@@ -42,10 +42,17 @@ tr:hover td{background:#FAFBF6}
 <header class="bg-ink text-white sticky top-0 z-30 shadow-md">
   <div class="max-w-7xl mx-auto px-3 py-2 space-y-2">
     <div class="flex items-center justify-between gap-2">
-      <h1 class="text-base sm:text-lg font-extrabold tracking-tight">Supervisión Fitosanitaria</h1>
+      <div>
+        <h1 class="text-base sm:text-lg font-extrabold tracking-tight">Supervisión Fitosanitaria</h1>
+        <!-- Indicador de Fecha de Sincronización del Excel -->
+        <p class="text-[11px] text-sol font-semibold flex items-center gap-1">
+          <span>📅 Actualizado al:</span>
+          <span id="lblSyncDate" class="bg-[#384131] px-2 py-0.5 rounded-md text-white font-mono">Cargando...</span>
+        </p>
+      </div>
       <div class="flex items-center gap-2 text-xs text-[#C9D3C0]">
         <span id="status" class="text-[10px] sm:text-xs">—</span>
-        <button onclick="load()" class="bg-sol text-ink font-bold rounded-lg px-2.5 py-1 text-xs">Actualizar</button>
+        <button onclick="load()" class="bg-sol text-ink font-bold rounded-lg px-2.5 py-1 text-xs shadow hover:bg-amber-400">Actualizar</button>
       </div>
     </div>
 
@@ -60,7 +67,7 @@ tr:hover td{background:#FAFBF6}
       <button class="tab" data-tab="mes">📅 Acumulado Meses</button>
     </nav>
 
-    <!-- Chips de Filtros Rápidos en Celular -->
+    <!-- Chips de Filtros Rápidos -->
     <div class="flex items-center gap-1.5 overflow-x-auto pb-1 pt-0.5">
       <span class="text-[10px] text-[#C9D3C0] font-semibold uppercase whitespace-nowrap">Chips Rápidos:</span>
       <button id="chipMadrugada" class="chip">🌙 Solo Madrugada</button>
@@ -373,6 +380,14 @@ async function load() {
       r._aRet = dtRet && !isNaN(dtRet) ? dtRet.getFullYear() : 2026;
     });
 
+    // Actualizar etiqueta de Fecha de Sincronización del Excel
+    if (raw.ultimaActualizacion) {
+      $('lblSyncDate').textContent = raw.ultimaActualizacion;
+    } else {
+      const maxDate = [].concat(d.apl, d.alm).map(r => r._f).filter(Boolean).sort().pop();
+      $('lblSyncDate').textContent = maxDate ? `${maxDate} (BD)` : new Date().toLocaleDateString('es-PE');
+    }
+
     const fechas = [].concat(d.ll, d.epp, d.hid, d.apl, d.alm).map(r => r._f).filter(Boolean).sort();
     const hoy = ymd(new Date());
     if (!S.date) S.date = fechas.includes(hoy) ? hoy : (fechas[fechas.length - 1] || hoy);
@@ -412,7 +427,7 @@ function updateDynamicSelects() {
 
   const almData = S.date ? base(S.d.alm) : S.d.alm;
   fill('aLote', 'Todos los Lotes', uniq(almData, 'lote'));
-  fill('aNAplic', 'Todas N° Aplicación', uniq(almData, '_naplic'));
+  fill('aNAplic', 'Todas N° Aplic.', uniq(almData, '_naplic'));
 
   const prods = new Set();
   almData.forEach(r => {
@@ -461,14 +476,12 @@ function rDash() {
   $('k1').textContent = new Set(base(ll).map(r => g(r, 'codtractor') || g(r, 'tractor'))).size;
   $('k2').textContent = base(apl).reduce((s, r) => s + num(g(r, 'haaplicadas')), 0).toFixed(1);
   
-  // Rendimiento Promedio
   const totalHa = base(apl).reduce((s, r) => s + num(g(r, 'haaplicadas')), 0);
-  const totalHrs = base(apl).length * 0.55 || 1; // Estimado promedio
+  const totalHrs = base(apl).length * 0.55 || 1;
   $('kRend').innerHTML = (totalHa / totalHrs).toFixed(2) + ' <span class="text-xs font-normal">Ha/Hr</span>';
 
   $('k4').textContent = base(alm).length;
 
-  // Tabla de Rendimiento por Tractor
   const rendByTr = {};
   base(apl).forEach(r => {
     const tr = g(r, 'tractor') || 'TRACTOR';
