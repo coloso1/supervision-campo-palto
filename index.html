@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Supervisión Fitosanitaria Palto & Almacén</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+tailwind.config={
+  theme:{
+    extend:{
+      fontFamily:{sans:['"Bricolage Grotesque"','system-ui','sans-serif']},
+      colors:{ink:'#23281F',vid:'#2E6B4A',sol:'#E0A526',agua:'#2B7A9B',campo:'#F5F6F1'}
+    }
+  }
+}
+</script>
+<style>
+.tab{padding:.5rem .8rem;border-radius:.6rem;font-weight:600;color:#C9D3C0;white-space:nowrap;font-size:.8rem}
+.tab.on{background:#F5F6F1;color:#23281F}
+.inp{border:1px solid #D6DBCB;border-radius:.6rem;padding:.45rem .65rem;background:#fff;font-size:.8rem;min-width:0;width:100%}
+.inp:focus-visible,.tab:focus-visible,button:focus-visible{outline:2px solid #E0A526;outline-offset:2px}
+th{position:sticky;top:0;background:#ECEFE4;text-align:left;padding:.5rem .65rem;font-size:.7rem;color:#4b5442;font-weight:600;white-space:nowrap}
+td{padding:.45rem .65rem;border-top:1px solid #E4E8DA;white-space:nowrap;font-size:.78rem}
+tr:hover td{background:#FAFBF6}
+.card{background:#fff;border:1px solid #DDE1D4;border-radius:.8rem}
+.sub.on{background:#2E6B4A;color:#fff}
+.btn-clean{background:#E4E8DA;color:#23281F;font-weight:600;font-size:.75rem;padding:.45rem .75rem;border-radius:.6rem;white-space:nowrap}
+.chip{background:#384131;color:#E4E8DA;padding:.3rem .65rem;border-radius:9999px;font-size:.72rem;font-weight:600;white-space:nowrap;transition:all .2s;border:1px solid #4D5745}
+.chip.active,.chip:active{background:#E0A526;color:#23281F;border-color:#E0A526}
+
+@media (max-width: 640px) {
+  .mob-hide{display:none !important}
+  th.mob-hide, td.mob-hide{display:none !important}
+}
+</style>
+</head>
+<body class="bg-campo font-sans text-ink min-h-screen pb-10">
+
+<header class="bg-ink text-white sticky top-0 z-30 shadow-md">
+  <div class="max-w-7xl mx-auto px-3 py-2 space-y-2">
+    <div class="flex items-center justify-between gap-2">
+      <h1 class="text-base sm:text-lg font-extrabold tracking-tight">Supervisión Fitosanitaria</h1>
+      <div class="flex items-center gap-2 text-xs text-[#C9D3C0]">
+        <span id="status" class="text-[10px] sm:text-xs">—</span>
+        <button onclick="load()" class="bg-sol text-ink font-bold rounded-lg px-2.5 py-1 text-xs">Actualizar</button>
+      </div>
+    </div>
+
+    <!-- Pestañas de Navegación -->
+    <nav class="flex gap-1 overflow-x-auto pb-1" aria-label="Secciones">
+      <button class="tab on" data-tab="dash">📊 Dashboard</button>
+      <button class="tab" data-tab="ll">🚜 Llegada</button>
+      <button class="tab" data-tab="epp">🛡️ EPPs</button>
+      <button class="tab" data-tab="hid">💧 Aplicaciones</button>
+      <button class="tab" data-tab="alm">📦 Almacén</button>
+      <button class="tab" data-tab="rvp">⚖️ Real vs Prog.</button>
+      <button class="tab" data-tab="mes">📅 Acumulado Meses</button>
+    </nav>
+
+    <!-- Chips de Filtros Rápidos en Celular -->
+    <div class="flex items-center gap-1.5 overflow-x-auto pb-1 pt-0.5">
+      <span class="text-[10px] text-[#C9D3C0] font-semibold uppercase whitespace-nowrap">Chips Rápidos:</span>
+      <button id="chipMadrugada" class="chip">🌙 Solo Madrugada</button>
+      <button id="chipPalto" class="chip">🥑 Solo Palto (Hass)</button>
+      <button id="chipAlerta" class="chip">⚠️ Lotes en Alerta</button>
+      <button id="chipRendimiento" class="chip">📊 Rendimiento Maquinaria</button>
+    </div>
+
+    <!-- Filtros Globales -->
+    <div class="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-1.5 text-ink pt-1">
+      <div class="flex items-center gap-1">
+        <label class="text-[11px] text-[#C9D3C0]">Fecha</label>
+        <input id="gDate" type="date" class="inp !py-1 !text-xs">
+      </div>
+      <div class="flex items-center gap-1">
+        <button id="gAll" class="text-xs text-sol underline font-semibold px-1">Todas las Fechas</button>
+      </div>
+      <div class="col-span-2 sm:col-span-1 flex items-center gap-1">
+        <label class="text-[11px] text-[#C9D3C0]">Turno</label>
+        <select id="gTurno" class="inp !py-1 !text-xs">
+          <option value="">Todos los turnos</option>
+          <option>Día</option>
+          <option>Tarde</option>
+          <option>Madrugada</option>
+        </select>
+        <span id="gLider" class="text-xs font-semibold text-sol ml-1 truncate"></span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div id="banner" class="hidden max-w-7xl mx-auto mt-2 mx-3 px-3 py-2 rounded-lg bg-amber-100 text-amber-900 text-xs"></div>
+
+<main class="max-w-7xl mx-auto px-3 py-3">
+
+  <!-- VISTA: DASHBOARD -->
+  <section id="v-dash" class="space-y-4">
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+      <div class="card p-3 border-l-4 border-l-vid"><p class="text-[11px] text-slate-500">Maquinarias Activas</p><p id="k1" class="text-2xl font-extrabold">0</p></div>
+      <div class="card p-3 border-l-4 border-l-sol"><p class="text-[11px] text-slate-500">Ha Aplicadas</p><p id="k2" class="text-2xl font-extrabold">0</p></div>
+      <div class="card p-3 border-l-4 border-l-agua"><p class="text-[11px] text-slate-500">Rendimiento Promedio</p><p id="kRend" class="text-2xl font-extrabold">0.0 <span class="text-xs font-normal">Ha/Hr</span></p></div>
+      <div class="card p-3 border-l-4 border-l-purple-600"><p class="text-[11px] text-slate-500">OTs Almacén</p><p id="k4" class="text-2xl font-extrabold">0</p></div>
+    </div>
+
+    <!-- Módulo de Rendimiento de Maquinarias -->
+    <div class="card p-3 bg-white">
+      <h3 class="font-semibold text-xs sm:text-sm mb-1 text-vid">🚜 Rendimiento y Velocidad de Avance por Tractor</h3>
+      <p class="text-[11px] text-slate-500 mb-2">Evaluación de eficiencia operativa ($Ha/Hora$) y velocidad media de aplicación ($km/h$).</p>
+      <div id="rendT" class="overflow-auto max-h-48"></div>
+    </div>
+
+    <div>
+      <h2 class="font-semibold text-sm mb-2">Resumen por Turno <span class="text-xs font-normal text-slate-500">(toca para filtrar)</span></h2>
+      <div id="turnos" class="grid grid-cols-1 sm:grid-cols-3 gap-2"></div>
+    </div>
+
+    <div class="grid lg:grid-cols-5 gap-3">
+      <div class="card p-3 lg:col-span-2"><h3 class="font-semibold text-xs mb-2">Registros por Turno</h3><div class="h-48 sm:h-64"><canvas id="c1"></canvas></div></div>
+      <div class="card p-3 lg:col-span-3"><h3 class="font-semibold text-xs mb-2">Ha Aplicadas por Tractor</h3><div class="h-48 sm:h-64"><canvas id="c2"></canvas></div></div>
+    </div>
+  </section>
+
+  <!-- VISTA: LLEGADA MAQUINARIA -->
+  <section id="v-ll" class="hidden space-y-2.5">
+    <div class="flex flex-col sm:flex-row gap-2">
+      <select id="llFundo" class="inp sm:w-48"></select>
+      <input id="llQ" class="inp flex-1" placeholder="Buscar tractor u operador…">
+      <button id="btnCleanLL" class="btn-clean">🧹 Limpiar</button>
+    </div>
+    <div id="llT" class="card overflow-auto max-h-[70vh]"></div>
+  </section>
+
+  <!-- VISTA: CONTROL EPP -->
+  <section id="v-epp" class="hidden space-y-2.5">
+    <div class="flex flex-col sm:flex-row gap-2">
+      <select id="eTipo" class="inp sm:w-44"><option value="">Veedor y Tractorista</option><option value="VEEDOR">Veedor</option><option value="TRACTORISTA">Tractorista</option></select>
+      <select id="eEst" class="inp sm:w-44"><option value="">Todos los estados</option><option value="P">Pendiente devolución</option><option value="D">Devuelto</option></select>
+      <input id="eQ" class="inp flex-1" placeholder="Nombre o código de trabajador…">
+      <button id="btnCleanEPP" class="btn-clean">🧹 Limpiar</button>
+    </div>
+    <div id="eT" class="card overflow-auto max-h-[70vh]"></div>
+  </section>
+
+  <!-- VISTA: HIDROLLENADOS Y APLICACIONES -->
+  <section id="v-hid" class="hidden space-y-2.5">
+    <div class="flex gap-2">
+      <button class="sub on inp !w-auto font-semibold" data-sub="hid">Hidrollenados</button>
+      <button class="sub inp !w-auto font-semibold" data-sub="apl">Aplicaciones</button>
+    </div>
+    <div class="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
+      <select id="hTurnoSec" class="inp"><option value="">Todos turnos</option><option>Día</option><option>Tarde</option><option>Madrugada</option></select>
+      <select id="hLote" class="inp"></select>
+      <select id="hCult" class="inp"></select>
+      <select id="hTr" class="inp"></select>
+      <input id="hOT" class="inp" placeholder="Nro OT">
+      <select id="hCum" class="inp"></select>
+      <button id="btnCleanHID" class="btn-clean col-span-2 sm:col-span-1">🧹 Limpiar</button>
+    </div>
+    <div id="hT" class="card overflow-auto max-h-[70vh]"></div>
+  </section>
+
+  <!-- VISTA: ALMACEN -->
+  <section id="v-alm" class="hidden space-y-3">
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+      <div class="card p-3 border-l-4 border-l-vid"><p class="text-[10px] text-slate-500">OTs Registradas</p><p id="aK1" class="text-xl font-extrabold">0</p></div>
+      <div class="card p-3 border-l-4 border-l-sol"><p class="text-[10px] text-slate-500">Ha Programadas</p><p id="aK2" class="text-xl font-extrabold">0.0</p></div>
+      <div class="card p-3 border-l-4 border-l-agua col-span-2"><p class="text-[10px] text-slate-500">Total Volumen Retirado</p><p id="aK3" class="text-xl font-extrabold">0.0 <span class="text-xs font-normal">L / Kg</span></p></div>
+    </div>
+    <div class="card p-3">
+      <h3 class="font-semibold text-xs sm:text-sm mb-1">Insumos Retirados de Almacén (L / Kg)</h3>
+      <div class="h-52 sm:h-64"><canvas id="cA1"></canvas></div>
+    </div>
+    <div class="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
+      <select id="aLote" class="inp"><option value="">Todos Lotes</option></select>
+      <select id="aNAplic" class="inp"><option value="">Todas N° Aplic.</option></select>
+      <select id="aProd" class="inp"><option value="">Todos Productos</option></select>
+      <select id="aEst" class="inp"><option value="">Todos Estados</option><option value="EJECUTADO">EJECUTADO</option><option value="APROBADO">APROBADO</option></select>
+      <input id="aOT" class="inp" placeholder="Nro OT">
+      <button id="btnCleanALM" class="btn-clean col-span-2 sm:col-span-1">🧹 Limpiar</button>
+    </div>
+    <div id="aT" class="card overflow-auto max-h-[60vh]"></div>
+  </section>
+
+  <!-- VISTA: REAL VS PROGRAMADO -->
+  <section id="v-rvp" class="hidden space-y-4">
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+      <div class="card p-3 border-l-4 border-l-blue-600"><p class="text-[10px] text-slate-500">Ha Programadas</p><p id="rvpK1" class="text-xl font-extrabold">0.0</p></div>
+      <div class="card p-3 border-l-4 border-l-vid"><p class="text-[10px] text-slate-500">Ha Reales Ejecutadas</p><p id="rvpK2" class="text-xl font-extrabold">0.0</p></div>
+      <div class="card p-3 border-l-4 border-l-sol"><p class="text-[10px] text-slate-500">% Cumplimiento</p><p id="rvpK3" class="text-xl font-extrabold">0%</p></div>
+      <div class="card p-3 border-l-4 border-l-agua"><p class="text-[10px] text-slate-500">Tancadas Llenadas</p><p id="rvpK4" class="text-xl font-extrabold">0</p></div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <div class="card p-3">
+        <div class="flex justify-between items-center mb-1">
+          <h3 class="font-semibold text-xs sm:text-sm">1. Ha Programadas vs. Reales</h3>
+          <span id="lblTurnoActivo" class="text-[10px] bg-sol text-ink font-bold px-2 py-0.5 rounded-full">Todos los turnos</span>
+        </div>
+        <p class="text-[11px] text-slate-400 mb-2">Compara lo planificado en Almacén vs. lo ejecutado en Campo.</p>
+        <div class="h-56 sm:h-64"><canvas id="cRvP1"></canvas></div>
+      </div>
+
+      <div class="card p-3">
+        <h3 class="font-semibold text-xs sm:text-sm mb-1">2. Avance por Tancadas por Lote</h3>
+        <p class="text-[11px] text-slate-400 mb-2">Mezcla preparada en hidrollenados.</p>
+        <div class="h-56 sm:h-64"><canvas id="cRvP2"></canvas></div>
+      </div>
+    </div>
+
+    <div class="flex flex-col sm:flex-row gap-2">
+      <select id="rvpLote" class="inp sm:w-48"><option value="">Todos los Lotes</option></select>
+      <input id="rvpOT" class="inp flex-1" placeholder="Buscar por N° OT…">
+      <button id="btnCleanRVP" class="btn-clean">🧹 Limpiar Filtros</button>
+    </div>
+
+    <div id="rvpT" class="card overflow-auto max-h-[60vh]"></div>
+  </section>
+
+  <!-- VISTA: ACUMULADO MESES -->
+  <section id="v-mes" class="hidden space-y-4">
+    <div class="card p-3 flex flex-wrap items-center gap-2 bg-white">
+      <span class="font-bold text-xs text-ink">Filtrar Rango de Meses:</span>
+      <div class="flex items-center gap-1">
+        <label class="text-xs text-slate-500">Desde:</label>
+        <select id="mStart" class="inp !w-32 !py-1 !text-xs">
+          <option value="1">Enero</option><option value="2">Febrero</option><option value="3">Marzo</option><option value="4">Abril</option><option value="5">Mayo</option><option value="6">Junio</option><option value="7">Julio</option><option value="8">Agosto</option><option value="9">Septiembre</option><option value="10" selected>Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option>
+        </select>
+      </div>
+      <div class="flex items-center gap-1">
+        <label class="text-xs text-slate-500">Hasta:</label>
+        <select id="mEnd" class="inp !w-32 !py-1 !text-xs">
+          <option value="1">Enero</option><option value="2">Febrero</option><option value="3">Marzo</option><option value="4">Abril</option><option value="5">Mayo</option><option value="6">Junio</option><option value="7">Julio</option><option value="8">Agosto</option><option value="9">Septiembre</option><option value="10" selected>Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option>
+        </select>
+      </div>
+      <select id="mAnno" class="inp !w-28 !py-1 !text-xs">
+        <option value="2026" selected>Año 2026</option>
+        <option value="2025">Año 2025</option>
+      </select>
+      <button id="btnCleanMES" class="btn-clean">🧹 Ver Todo el Año</button>
+    </div>
+
+    <div>
+      <h3 class="font-semibold text-xs sm:text-sm mb-2">Totales Retirados de Almacén por Agroquímico (L / Kg)</h3>
+      <div id="cardsProds" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5"></div>
+    </div>
+
+    <div class="space-y-2">
+      <h3 class="font-semibold text-xs sm:text-sm">Detalle por Orden de Trabajo (OT) y Fechas de Retiro</h3>
+      <div id="mesT" class="card overflow-auto max-h-[60vh]"></div>
+    </div>
+  </section>
+
+</main>
+
+<script>
+/* ===== URL de Apps Script ===== */
+const API_URL = 'https://script.google.com/macros/s/AKfycbwE_4J7c7WuFP-P66Ie9uTOUHnPaYD5pt0FkGY2I7HhE1BCCKKCj7v3z-spI30aq59l/exec';
+/* ============================== */
+
+const LIDERES = { 'Tarde': 'Flores Peña', 'Madrugada': 'Alonso Tipismana' };
+const TURNOS = ['Día', 'Tarde', 'Madrugada'];
+
+const S = { 
+  d: { ll: [], epp: [], hid: [], apl: [], alm: [] }, 
+  date: '', 
+  turno: '', 
+  tab: 'dash', 
+  sub: 'hid', 
+  ch: {},
+  fPaltoOnly: false,
+  fAlertaOnly: false
+};
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const norm = s => String(s ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
+const g = (r, k) => r[norm(k)] ?? '';
+const num = v => parseFloat(String(v).replace(',', '.')) || 0;
+const pad = n => String(n).padStart(2, '0');
+const ymd = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+
+function fd(v) {
+  v = String(v ?? '').trim(); if (!v) return '';
+  if (v.includes('T')) v = v.split('T')[0];
+  let m = v.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})/); if (m) return `${m[3]}-${pad(m[2])}-${pad(m[1])}`;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return v;
+  const d = new Date(v); return isNaN(d) ? '' : ymd(d);
+}
+
+function ft(v) {
+  v = String(v ?? '').trim(); if (!v) return '';
+  let m = v.match(/(\d{1,2}):(\d{2})/);
+  if (m) {
+    let h = +m[1];
+    if (/pm/i.test(v) && h < 12) h += 12;
+    if (/am/i.test(v) && h === 12) h = 0;
+    return `${pad(h)}:${m[2]}`;
+  }
+  const d = new Date(v); return isNaN(d) ? '' : `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function tt(t) {
+  if (!t) return ''; const h = +t.slice(0, 2);
+  return h >= 6 && h < 15 ? 'Día' : h >= 15 && h < 23 ? 'Tarde' : 'Madrugada';
+}
+
+function tn(v) {
+  const n = norm(v); if (!n) return '';
+  return n.includes('tard') || n.includes('noche') ? 'Tarde' : n.includes('madrug') ? 'Madrugada' : n.includes('dia') || n.includes('manana') ? 'Día' : '';
+}
+
+function toRows(a) {
+  if (!Array.isArray(a) || !a.length) return [];
+  if (Array.isArray(a[0])) {
+    const headers = a[0].map(h => norm(h));
+    return a.slice(1).map(row => {
+      const obj = {};
+      headers.forEach((h, i) => { if (h) obj[h] = row[i]; });
+      return obj;
+    });
+  }
+  return a.map(o => Object.fromEntries(Object.entries(o).map(([k, v]) => [norm(k), v])));
+}
+
+async function load() {
+  $('status').textContent = 'Cargando…'; $('banner').classList.add('hidden');
+  try {
+    let raw;
+    if (API_URL) {
+      const r = await fetch(API_URL, { redirect: 'follow' });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      raw = await r.json();
+    } else {
+      $('status').textContent = 'Falta API_URL'; return;
+    }
+    
+    const src = raw.data || raw;
+    const findKey = k => Object.keys(src).find(x => norm(x).includes(k));
+    const pick = k => toRows(src[findKey(k)] || []);
+    
+    const d = S.d = {
+      ll: pick('llegada'),
+      epp: pick('epp'),
+      hid: pick('hidrollenado'),
+      apl: pick('aplicacion'),
+      alm: pick('salida')
+    };
+
+    d.ll.forEach(r => { r._f = fd(g(r, 'fecha')); r._h = ft(g(r, 'horallegada')); r._t = tt(r._h); });
+    d.epp.forEach(r => { r._f = fd(g(r, 'fecha')); r._h = ft(g(r, 'horaentrega')); r._t = tn(g(r, 'turno')) || tt(r._h); });
+    d.hid.forEach(r => { r._f = fd(g(r, 'fecha')); r._h = ft(g(r, 'horainicio')); r._t = tn(g(r, 'turno')) || tt(r._h); });
+    d.apl.forEach(r => { 
+      r._f = fd(g(r, 'fecha')); 
+      r._h = ft(g(r, 'horainicio')); 
+      r._t = tn(g(r, 'turno')) || tt(r._h);
+      r._cult = String(g(r, 'cultivo') || '').toUpperCase();
+    });
+    
+    d.alm.forEach(r => {
+      r._fRet = fd(g(r, 'fecharetiro'));
+      r._fApl = fd(g(r, 'fechaaplic'));
+      r._f = r._fApl || r._fRet;
+      r._h = '08:00';
+      r._t = tn(g(r, 'turno')) || 'Día';
+      r._naplic = String(g(r, 'naplic') || g(r, 'nroaplicacion') || '').trim();
+      r._cult = String(g(r, 'variedad') || g(r, 'cultivo') || '').toUpperCase();
+      
+      const dtRet = r._fRet ? new Date(r._fRet) : null;
+      r._mRet = dtRet && !isNaN(dtRet) ? dtRet.getMonth() + 1 : 10;
+      r._aRet = dtRet && !isNaN(dtRet) ? dtRet.getFullYear() : 2026;
+    });
+
+    const fechas = [].concat(d.ll, d.epp, d.hid, d.apl, d.alm).map(r => r._f).filter(Boolean).sort();
+    const hoy = ymd(new Date());
+    if (!S.date) S.date = fechas.includes(hoy) ? hoy : (fechas[fechas.length - 1] || hoy);
+    
+    $('status').textContent = 'Actualizado ' + new Date().toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });
+  } catch (e) {
+    $('status').textContent = 'Error';
+    $('banner').textContent = 'No se pudo leer la API: ' + e.message;
+    $('banner').classList.remove('hidden');
+  }
+  render();
+}
+
+const base = (rows, byTurno = true) => rows.filter(r => {
+  const matchDate = !S.date || r._f === S.date || r._fApl === S.date || r._fRet === S.date;
+  const matchTurno = !byTurno || !S.turno || r._t === S.turno;
+  const matchPalto = !S.fPaltoOnly || (r._cult && r._cult.includes('PALTO'));
+  const matchAlerta = !S.fAlertaOnly || /incump|no|alerta|retras/i.test(g(r, 'cumplimiento') || g(r, 'estadoot'));
+  return matchDate && matchTurno && matchPalto && matchAlerta;
+});
+
+const uniq = (rows, k) => [...new Set(rows.map(r => String(g(r, k)).trim()).filter(Boolean))].sort();
+
+function fill(id, first, vals) { 
+  const el = $(id), cur = el.value; 
+  el.innerHTML = `<option value="">${first}</option>` + vals.map(v => `<option value="${esc(v)}">${esc(v)}</option>`).join(''); 
+  el.value = vals.includes(cur) ? cur : ''; 
+}
+
+function updateDynamicSelects() {
+  fill('llFundo', 'Todos los fundos', uniq(base(S.d.ll), 'fundo'));
+  const targetDataset = S.sub === 'hid' ? base(S.d.hid) : base(S.d.apl);
+  fill('hLote', 'Todos los lotes', uniq(targetDataset, 'lote'));
+  fill('hCult', 'Todos los cultivos', uniq(targetDataset, 'cultivo'));
+  fill('hTr', 'Todos los tractores', uniq(targetDataset, 'tractor'));
+  fill('hCum', 'Todo cumplimiento', uniq(targetDataset, 'cumplimiento'));
+
+  const almData = S.date ? base(S.d.alm) : S.d.alm;
+  fill('aLote', 'Todos los Lotes', uniq(almData, 'lote'));
+  fill('aNAplic', 'Todas N° Aplicación', uniq(almData, '_naplic'));
+
+  const prods = new Set();
+  almData.forEach(r => {
+    const pStr = String(g(r, 'nombreproductodosis_ha'));
+    pStr.split('/').forEach(p => {
+      const clean = p.replace(/\s*\([\d\.]+\)/, '').trim();
+      if (clean) prods.add(clean);
+    });
+  });
+  fill('aProd', 'Todos los Productos', [...prods].sort());
+
+  fill('rvpLote', 'Todos los Lotes', uniq([].concat(S.d.alm, S.d.apl), 'lote'));
+}
+
+const badge = (t, c) => `<span class="px-2 py-0.5 rounded-full text-xs font-semibold ${c}">${esc(t)}</span>`;
+const G = 'bg-green-100 text-green-800', Y = 'bg-amber-100 text-amber-800', R = 'bg-red-100 text-red-700', N = 'bg-slate-100 text-slate-600';
+
+function sortByTime(rows) {
+  return [...rows].sort((a, b) => (a._h || '00:00').localeCompare(b._h || '00:00'));
+}
+
+function table(cols, rows) {
+  if (!rows.length) return '<p class="p-4 text-xs text-slate-500">Sin registros con estos filtros.</p>';
+  const sortedRows = sortByTime(rows);
+  const cut = sortedRows.slice(0, 300);
+  return `<table class="w-full"><thead><tr>${cols.map(c => `<th class="${c[2] || ''}">${c[0]}</th>`).join('')}</tr></thead><tbody>${cut.map(r => `<tr>${cols.map(c => `<td class="${c[2] || ''}">${c[1](r)}</td>`).join('')}</tr>`).join('')}</tbody></table>` +
+    (sortedRows.length > 300 ? `<p class="p-2 text-xs text-slate-500">Mostrando 300 de ${sortedRows.length}. Afina los filtros.</p>` : '');
+}
+
+const has = (r, q, keys) => !q || keys.some(k => norm(g(r, k)).includes(norm(q)));
+const devuelto = r => !!(String(g(r, 'estadodevolucion')).trim() || ft(g(r, 'horadevolucion')));
+
+function render() {
+  $('gDate').value = S.date; $('gTurno').value = S.turno;
+  $('gLider').textContent = S.turno ? (LIDERES[S.turno] ? 'Líder: ' + LIDERES[S.turno] : '') : '';
+  
+  updateDynamicSelects();
+
+  ['dash', 'll', 'epp', 'hid', 'alm', 'rvp', 'mes'].forEach(t => $('v-' + t).classList.toggle('hidden', t !== S.tab));
+  document.querySelectorAll('.tab').forEach(b => b.classList.toggle('on', b.dataset.tab === S.tab));
+  ({ dash: rDash, ll: rLL, epp: rEPP, hid: rHid, alm: rAlm, rvp: rRvP, mes: rMes })[S.tab]();
+}
+
+function rDash() {
+  const { ll, epp, hid, apl, alm } = S.d;
+  $('k1').textContent = new Set(base(ll).map(r => g(r, 'codtractor') || g(r, 'tractor'))).size;
+  $('k2').textContent = base(apl).reduce((s, r) => s + num(g(r, 'haaplicadas')), 0).toFixed(1);
+  
+  // Rendimiento Promedio
+  const totalHa = base(apl).reduce((s, r) => s + num(g(r, 'haaplicadas')), 0);
+  const totalHrs = base(apl).length * 0.55 || 1; // Estimado promedio
+  $('kRend').innerHTML = (totalHa / totalHrs).toFixed(2) + ' <span class="text-xs font-normal">Ha/Hr</span>';
+
+  $('k4').textContent = base(alm).length;
+
+  // Tabla de Rendimiento por Tractor
+  const rendByTr = {};
+  base(apl).forEach(r => {
+    const tr = g(r, 'tractor') || 'TRACTOR';
+    if (!rendByTr[tr]) rendByTr[tr] = { ha: 0, count: 0, velSum: 0 };
+    rendByTr[tr].ha += num(g(r, 'haaplicadas'));
+    rendByTr[tr].count += 1;
+    rendByTr[tr].velSum += num(g(r, 'velocidad')) || 2.5;
+  });
+
+  const rendRows = Object.entries(rendByTr).map(([tr, data]) => ({
+    tractor: tr,
+    ha: data.ha,
+    rend: (data.ha / (data.count * 0.6)).toFixed(2),
+    vel: (data.velSum / data.count).toFixed(1)
+  })).sort((a, b) => b.ha - a.ha);
+
+  $('rendT').innerHTML = rendRows.length ? `
+    <table class="w-full">
+      <thead><tr><th>Tractor</th><th>Ha Totales</th><th>Rend. Est. (Ha/Hr)</th><th>Velocidad (km/h)</th></tr></thead>
+      <tbody>
+        ${rendRows.slice(0, 5).map(r => `<tr>
+          <td><b>${esc(r.tractor)}</b></td>
+          <td>${r.ha.toFixed(2)} Ha</td>
+          <td><span class="text-vid font-bold">${r.rend}</span> Ha/Hr</td>
+          <td>${r.vel} km/h</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+  ` : '<p class="text-xs text-slate-400 p-2">Sin datos de aplicación en este filtro.</p>';
+
+  $('turnos').innerHTML = TURNOS.map(t => {
+    const c = x => base(x, false).filter(r => r._t === t).length;
+    const ha = base(apl, false).filter(r => r._t === t).reduce((s, r) => s + num(g(r, 'haaplicadas')), 0).toFixed(1);
+    const on = S.turno === t;
+    return `<button data-turno="${t}" class="card p-3 text-left ${on ? 'ring-2 ring-vid' : ''}">
+      <div class="flex justify-between items-baseline"><span class="font-extrabold text-sm sm:text-base">${t}</span><span class="text-[10px] text-slate-500">${t === 'Día' ? '06:00–14:00' : t === 'Tarde' ? '15:00–23:00' : '23:00–07:00'}</span></div>
+      <p class="text-[11px] mt-0.5 ${LIDERES[t] ? 'text-vid font-semibold' : 'text-slate-400'}">${LIDERES[t] ? 'Líder: ' + LIDERES[t] : 'Sin líder'}</p>
+      <p class="text-xs mt-2">${c(ll)} lleg. · ${c(apl)} aplic. · ${c(alm)} almacén</p>
+      <p class="text-xs font-semibold">${ha} Ha aplicadas</p></button>`;
+  }).join('');
+  chart('c1', 'doughnut', TURNOS, TURNOS.map(t => [ll, epp, hid, apl].reduce((s, x) => s + base(x, false).filter(r => r._t === t).length, 0)), ['#2E6B4A', '#E0A526', '#2B7A9B']);
+  const by = {}; base(apl).forEach(r => { const k = g(r, 'tractor') || g(r, 'codtractor') || '—'; by[k] = (by[k] || 0) + num(g(r, 'haaplicadas')); });
+  const top = Object.entries(by).sort((a, b) => b[1] - a[1]).slice(0, 10);
+  chart('c2', 'bar', top.map(x => x[0]), top.map(x => +x[1].toFixed(1)), '#2E6B4A');
+}
+
+function chart(id, type, labels, data, color) {
+  if (S.ch[id]) S.ch[id].destroy();
+  S.ch[id] = new Chart($(id), { type, data: { labels, datasets: [{ data, backgroundColor: color, borderRadius: type === 'bar' ? 5 : 0, label: 'Valor' }] },
+    options: { maintainAspectRatio: false, plugins: { legend: { display: type === 'doughnut', position: 'bottom' } }, scales: type === 'bar' ? { y: { beginAtZero: true } } : {} } });
+}
+
+function chartGrouped(id, labels, ds1, ds2) {
+  if (S.ch[id]) S.ch[id].destroy();
+  S.ch[id] = new Chart($(id), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Programado (Almacén)', data: ds1, backgroundColor: '#2B7A9B', borderRadius: 4 },
+        { label: 'Real (Campo)', data: ds2, backgroundColor: '#2E6B4A', borderRadius: 4 }
+      ]
+    },
+    options: { maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } }, scales: { y: { beginAtZero: true } } }
+  });
+}
+
+function rLL() {
+  const f = $('llFundo').value, q = $('llQ').value;
+  const rows = base(S.d.ll).filter(r => (!f || g(r, 'fundo') === f) && has(r, q, ['tractor', 'codtractor', 'tractorista', 'codtractorista']));
+  $('llT').innerHTML = table([
+    ['Fecha', r => r._f],
+    ['Turno', r => r._t || '—'],
+    ['Hora', r => ft(g(r, 'horallegada')) || '—'],
+    ['Fundo', r => esc(g(r, 'fundo'))],
+    ['Zona', r => esc(g(r, 'zonallegada')), 'mob-hide'],
+    ['Tractorista', r => esc(g(r, 'tractorista'))],
+    ['Tractor', r => esc(g(r, 'tractor'))],
+    ['Implemento', r => esc(g(r, 'implemento')), 'mob-hide']
+  ], rows);
+}
+
+function rEPP() {
+  const tp = $('eTipo').value, es = $('eEst').value, q = $('eQ').value, hoy = ymd(new Date());
+  const rows = base(S.d.epp).filter(r => (!tp || norm(g(r, 'tipopersonal')) === norm(tp)) && (!es || (es === 'D') === devuelto(r)) && has(r, q, ['trabajador', 'codigotrabajador']));
+  $('eT').innerHTML = table([
+    ['Fecha', r => r._f],
+    ['Turno', r => r._t || '—'],
+    ['Tipo', r => esc(g(r, 'tipopersonal')), 'mob-hide'],
+    ['Trabajador', r => esc(g(r, 'trabajador'))],
+    ['EPP', r => esc(g(r, 'codepp'))],
+    ['Entrega', r => (ft(g(r, 'horaentrega')) || '—') + ' ' + badge(g(r, 'estadoentrega') || 'ENTREGA', devuelto(r) ? N : (r._f < hoy ? R : Y))],
+    ['Devolución', r => devuelto(r) ? (ft(g(r, 'horadevolucion')) || '') + ' ' + badge(g(r, 'estadodevolucion') || 'DEVOLUCION', G) : badge('Sin devolver', r._f < hoy ? R : Y)]
+  ], rows);
+}
+
+function rHid() {
+  const hid = S.sub === 'hid', turSec = $('hTurnoSec').value, lote = $('hLote').value, cu = $('hCult').value, tr = $('hTr').value, ot = $('hOT').value.trim(), cm = $('hCum').value;
+  $('hCult').classList.toggle('hidden', hid); $('hCum').classList.toggle('hidden', !hid);
+  document.querySelectorAll('.sub').forEach(b => b.classList.toggle('on', b.dataset.sub === S.sub));
+  
+  const rows = base(S.d[S.sub]).filter(r => 
+    (!turSec || r._t === turSec) &&
+    (!lote || g(r, 'lote') === lote) && 
+    (!cu || g(r, 'cultivo') === cu) && 
+    (!tr || g(r, 'tractor') === tr) && 
+    has(r, ot, ['nroordenot']) && 
+    (!cm || g(r, 'cumplimiento') === cm)
+  );
+  
+  const cum = r => { const v = g(r, 'cumplimiento'); return v ? badge(v, /^no|incump/i.test(v) ? R : /cumpl|si|ok/i.test(v) ? G : Y) : '—'; };
+  
+  $('hT').innerHTML = hid
+    ? table([
+      ['Fecha', r => r._f],
+      ['Turno', r => r._t || '—'],
+      ['Lote', r => esc(g(r, 'lote'))],
+      ['Horario', r => ft(g(r, 'horainicio')) + '–' + ft(g(r, 'horafin'))],
+      ['Tractor', r => esc(g(r, 'tractor'))],
+      ['Tancada', r => esc(g(r, 'tancada'))],
+      ['Ha', r => esc(g(r, 'ha'))],
+      ['Productos', r => esc(g(r, 'productosdosisha'))],
+      ['Cumplimiento', cum]
+    ], rows)
+    : table([
+      ['Fecha', r => r._f],
+      ['Turno', r => r._t || '—'],
+      ['Tractor', r => esc(g(r, 'tractor'))],
+      ['Lote', r => esc(g(r, 'lote'))],
+      ['Cultivo', r => esc(g(r, 'cultivo'))],
+      ['Horario', r => ft(g(r, 'horainicio')) + '–' + ft(g(r, 'horafin'))],
+      ['Ha aplic.', r => `<b>${esc(g(r, 'haaplicadas'))}</b>`],
+      ['Producto', r => esc(g(r, 'producto'))],
+      ['RPM / Veloc.', r => esc(g(r, 'rpm')) + ' / ' + esc(g(r, 'velocidad')), 'mob-hide'],
+      ['Presión', r => esc(g(r, 'presion')), 'mob-hide'],
+      ['OT', r => esc(g(r, 'nroordenot'))]
+    ], rows);
+}
+
+function rAlm() {
+  const est = $('aEst').value, lote = $('aLote').value, nA = $('aNAplic').value, prod = $('aProd').value, ot = $('aOT').value.trim();
+  const srcData = S.date ? base(S.d.alm) : S.d.alm;
+
+  const rows = srcData.filter(r => 
+    (!est || norm(g(r, 'estadoot')) === norm(est)) && 
+    (!lote || g(r, 'lote') === lote) && 
+    (!nA || String(r._naplic) === String(nA)) &&
+    (!prod || norm(g(r, 'nombreproductodosis_ha')).includes(norm(prod))) &&
+    has(r, ot, ['ordentrabajo'])
+  );
+
+  $('aK1').textContent = rows.length;
+  $('aK2').textContent = rows.reduce((s, r) => s + num(g(r, 'haaplic')), 0).toFixed(1);
+  
+  let totVol = 0;
+  const byProd = {};
+  rows.forEach(r => {
+    const pStr = String(g(r, 'nombreproductodosis_ha'));
+    const tStr = String(g(r, 'total_producto'));
+    const prods = pStr.split('/');
+    const tots = tStr.split('/');
+    prods.forEach((p, i) => {
+      const name = p.replace(/\s*\([\d\.]+\)/, '').trim();
+      const val = num(tots[i] || tots[0]);
+      if (name && (!prod || norm(name).includes(norm(prod)))) {
+        byProd[name] = (byProd[name] || 0) + val;
+        totVol += val;
+      }
+    });
+  });
+
+  $('aK3').innerHTML = totVol.toFixed(1) + ' <span class="text-xs font-normal">L/Kg</span>';
+
+  const topProds = Object.entries(byProd).sort((a, b) => b[1] - a[1]).slice(0, 8);
+  chart('cA1', 'bar', topProds.map(x => x[0]), topProds.map(x => +x[1].toFixed(1)), '#2B7A9B');
+
+  const stBadge = r => {
+    const e = String(g(r, 'estadoot')).toUpperCase();
+    return badge(e, e.includes('EJEC') ? G : e.includes('APROB') ? Y : R);
+  };
+
+  $('aT').innerHTML = table([
+    ['OT', r => esc(g(r, 'ordentrabajo'))],
+    ['N° Aplic.', r => `<b>${esc(r._naplic)}</b>`],
+    ['Estado', stBadge],
+    ['Lote', r => esc(g(r, 'lote'))],
+    ['F. Retiro', r => r._fRet || '—'],
+    ['F. Aplic.', r => r._fApl || '—'],
+    ['Ha Prog.', r => esc(g(r, 'haaplic'))],
+    ['Producto + Dosis', r => esc(g(r, 'nombreproductodosis_ha'))],
+    ['Total Retirado', r => `<b>${esc(g(r, 'total_producto'))}</b> ${esc(g(r, 'um'))}`]
+  ], rows);
+}
+
+function rRvP() {
+  const lote = $('rvpLote').value, ot = $('rvpOT').value.trim();
+
+  const almData = (S.date ? base(S.d.alm, true) : S.d.alm.filter(r => !S.turno || r._t === S.turno)).filter(r => (!lote || g(r, 'lote') === lote) && has(r, ot, ['ordentrabajo']));
+  const aplData = (S.date ? base(S.d.apl, true) : S.d.apl.filter(r => !S.turno || r._t === S.turno)).filter(r => (!lote || g(r, 'lote') === lote) && has(r, ot, ['nro_ordenot']));
+  const hidData = (S.date ? base(S.d.hid, true) : S.d.hid.filter(r => !S.turno || r._t === S.turno)).filter(r => (!lote || g(r, 'lote') === lote) && has(r, ot, ['nroordenot']));
+
+  const haProg = almData.reduce((s, r) => s + num(g(r, 'haaplic')), 0);
+  const haReal = aplData.reduce((s, r) => s + num(g(r, 'haaplicadas')), 0);
+  const pctCumpl = haProg > 0 ? ((haReal / haProg) * 100).toFixed(1) : 0;
+  const totTancadas = hidData.length;
+
+  $('rvpK1').textContent = haProg.toFixed(1);
+  $('rvpK2').textContent = haReal.toFixed(1);
+  $('rvpK3').textContent = pctCumpl + '%';
+  $('rvpK4').textContent = totTancadas;
+
+  $('lblTurnoActivo').textContent = S.turno ? `Turno: ${S.turno}` : 'Todos los turnos';
+  
+  let chartLabels, progVals, realVals;
+  if (S.turno) {
+    chartLabels = [S.turno];
+    progVals = [haProg.toFixed(1)];
+    realVals = [haReal.toFixed(1)];
+  } else {
+    chartLabels = TURNOS;
+    progVals = TURNOS.map(t => almData.filter(r => r._t === t).reduce((s, r) => s + num(g(r, 'haaplic')), 0).toFixed(1));
+    realVals = TURNOS.map(t => aplData.filter(r => r._t === t).reduce((s, r) => s + num(g(r, 'haaplicadas')), 0).toFixed(1));
+  }
+  chartGrouped('cRvP1', chartLabels, progVals, realVals);
+
+  const tancByLote = {};
+  hidData.forEach(r => {
+    const l = g(r, 'lote') || 'Sin Lote';
+    tancByLote[l] = (tancByLote[l] || 0) + 1;
+  });
+  const topLotesTanc = Object.entries(tancByLote).sort((a, b) => b[1] - a[1]).slice(0, 8);
+  chart('cRvP2', 'bar', topLotesTanc.map(x => x[0]), topLotesTanc.map(x => x[1]), '#2B7A9B');
+
+  $('rvpT').innerHTML = table([
+    ['Lote', r => esc(g(r, 'lote'))],
+    ['Turno', r => esc(r._t)],
+    ['OT Almacén', r => esc(g(r, 'ordentrabajo'))],
+    ['Estado OT', r => badge(g(r, 'estadoot') || 'APROBADO', Y)],
+    ['Ha Prog.', r => `<b>${num(g(r, 'haaplic')).toFixed(2)}</b>`],
+    ['Producto Planificado', r => esc(g(r, 'nombreproductodosis_ha'))],
+    ['Total Retirado', r => `<b>${esc(g(r, 'total_producto'))} ${esc(g(r, 'um'))}</b>`]
+  ], almData);
+}
+
+function rMes() {
+  const mS = parseInt($('mStart').value) || 1;
+  const mE = parseInt($('mEnd').value) || 12;
+  const aN = parseInt($('mAnno').value) || 2026;
+
+  const filtered = S.d.alm.filter(r => {
+    const m = r._mRet;
+    const a = r._aRet;
+    return a === aN && m >= mS && m <= mE;
+  });
+
+  const byProd = {};
+  filtered.forEach(r => {
+    const pStr = String(g(r, 'nombreproductodosis_ha'));
+    const tStr = String(g(r, 'total_producto'));
+    const um = String(g(r, 'um') || 'L');
+    const prods = pStr.split('/');
+    const tots = tStr.split('/');
+    
+    prods.forEach((p, i) => {
+      const name = p.replace(/\s*\([\d\.]+\)/, '').trim();
+      const val = num(tots[i] || tots[0]);
+      if (name) {
+        if (!byProd[name]) byProd[name] = { total: 0, um: um };
+        byProd[name].total += val;
+      }
+    });
+  });
+
+  const sortedProds = Object.entries(byProd).sort((a, b) => b[1].total - a[1].total);
+  if (sortedProds.length === 0) {
+    $('cardsProds').innerHTML = '<p class="col-span-full text-xs text-slate-500 p-3">No hay retiros registrados en este rango de meses.</p>';
+  } else {
+    $('cardsProds').innerHTML = sortedProds.map(([pName, info]) => `
+      <div class="card p-3 border-t-4 border-t-agua shadow-sm">
+        <p class="text-[10px] text-slate-500 uppercase font-semibold truncate">${esc(pName)}</p>
+        <p class="text-xl sm:text-2xl font-extrabold text-ink mt-1">${info.total.toFixed(2)} <span class="text-xs font-normal text-slate-500">${esc(info.um)}</span></p>
+        <p class="text-[10px] text-vid font-semibold mt-1">Acumulado Retirado</p>
+      </div>
+    `).join('');
+  }
+
+  $('mesT').innerHTML = table([
+    ['Fecha Retiro', r => `<b>${r._fRet || '—'}</b>`],
+    ['OT Almacén', r => esc(g(r, 'ordentrabajo'))],
+    ['Lote', r => esc(g(r, 'lote'))],
+    ['N° Aplic.', r => esc(r._naplic)],
+    ['Producto + Dosis/Ha', r => esc(g(r, 'nombreproductodosis_ha'))],
+    ['Total Retirado', r => `<b class="text-agua">${esc(g(r, 'total_producto'))} ${esc(g(r, 'um'))}</b>`],
+    ['Estado OT', r => badge(g(r, 'estadoot') || 'EJECUTADO', G)]
+  ], filtered);
+}
+
+/* Eventos de Chips Rápidos */
+$('chipMadrugada').onclick = function() {
+  S.turno = S.turno === 'Madrugada' ? '' : 'Madrugada';
+  this.classList.toggle('active', S.turno === 'Madrugada');
+  render();
+};
+
+$('chipPalto').onclick = function() {
+  S.fPaltoOnly = !S.fPaltoOnly;
+  this.classList.toggle('active', S.fPaltoOnly);
+  render();
+};
+
+$('chipAlerta').onclick = function() {
+  S.fAlertaOnly = !S.fAlertaOnly;
+  this.classList.toggle('active', S.fAlertaOnly);
+  render();
+};
+
+$('chipRendimiento').onclick = function() {
+  S.tab = 'dash';
+  render();
+  window.scrollTo({ top: 180, behavior: 'smooth' });
+};
+
+/* Eventos Generales */
+document.querySelectorAll('.tab').forEach(b => b.onclick = () => { S.tab = b.dataset.tab; render(); });
+document.querySelectorAll('.sub').forEach(b => b.onclick = () => { S.sub = b.dataset.sub; render(); });
+$('gDate').onchange = e => { S.date = e.target.value; render(); };
+$('gAll').onclick = () => { S.date = ''; render(); };
+$('gTurno').onchange = e => { S.turno = e.target.value; render(); };
+$('turnos').onclick = e => { const b = e.target.closest('[data-turno]'); if (b) { S.turno = S.turno === b.dataset.turno ? '' : b.dataset.turno; render(); } };
+
+$('btnCleanLL').onclick = () => { $('llFundo').value = ''; $('llQ').value = ''; render(); };
+$('btnCleanEPP').onclick = () => { $('eTipo').value = ''; $('eEst').value = ''; $('eQ').value = ''; render(); };
+$('btnCleanHID').onclick = () => { $('hTurnoSec').value = ''; $('hLote').value = ''; $('hCult').value = ''; $('hTr').value = ''; $('hOT').value = ''; $('hCum').value = ''; render(); };
+$('btnCleanALM').onclick = () => { $('aLote').value = ''; $('aNAplic').value = ''; $('aProd').value = ''; $('aEst').value = ''; $('aOT').value = ''; render(); };
+$('btnCleanRVP').onclick = () => { $('rvpLote').value = ''; $('rvpOT').value = ''; render(); };
+$('btnCleanMES').onclick = () => { $('mStart').value = '1'; $('mEnd').value = '12'; render(); };
+
+['llFundo', 'llQ', 'eTipo', 'eEst', 'eQ', 'hTurnoSec', 'hLote', 'hCult', 'hTr', 'hOT', 'hCum', 'aLote', 'aNAplic', 'aProd', 'aEst', 'aOT', 'rvpLote', 'rvpOT', 'mStart', 'mEnd', 'mAnno'].forEach(id => $(id).addEventListener('input', render));
+
+load();
+</script>
+</body>
+</html>
