@@ -122,14 +122,14 @@ tr:hover td{background:#FAFBF6}
       </div>
     </div>
 
-    <!-- Tarjetas KPI de Cobertura por N° Aplicación -->
+    <!-- Tarjetas KPI de Cobertura -->
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
       <div class="card p-3 border-l-4 border-l-blue-600">
-        <p class="text-[10px] text-slate-500">Ha Programadas (N° Aplic.)</p>
+        <p class="text-[10px] text-slate-500">Ha Totales Lote (Oficial)</p>
         <p id="cobK1" class="text-2xl font-extrabold">0.00 <span class="text-xs font-normal">Ha</span></p>
       </div>
       <div class="card p-3 border-l-4 border-l-vid">
-        <p class="text-[10px] text-slate-500">Ha Aplicadas (Ejecutadas)</p>
+        <p class="text-[10px] text-slate-500">Suma Ha N° Aplicación</p>
         <p id="cobK2" class="text-2xl font-extrabold">0.00 <span class="text-xs font-normal">Ha</span></p>
       </div>
       <div class="card p-3 border-l-4 border-l-amber-500">
@@ -145,7 +145,7 @@ tr:hover td{background:#FAFBF6}
     <!-- Barra de Progreso Visual -->
     <div class="card p-3 bg-white space-y-1">
       <div class="flex justify-between items-center text-xs font-bold">
-        <span>Progreso de Cobertura del Lote en la N° Aplicación:</span>
+        <span>Progreso de Cobertura de la N° Aplicación respecto al Total del Lote:</span>
         <span id="cobBarPct" class="text-vid">0%</span>
       </div>
       <div class="w-full bg-slate-200 rounded-full h-3.5 overflow-hidden">
@@ -155,7 +155,7 @@ tr:hover td{background:#FAFBF6}
 
     <!-- Tabla 1: Resumen del Lote -->
     <div class="space-y-2">
-      <h3 class="font-semibold text-xs sm:text-sm">Resumen de Ha Programadas vs Ejecutadas por N° Aplicación</h3>
+      <h3 class="font-semibold text-xs sm:text-sm">Resumen de Ha Totales Lote vs Suma Ha de la N° Aplicación</h3>
       <div id="cobT" class="card overflow-auto max-h-[40vh]"></div>
     </div>
 
@@ -165,7 +165,7 @@ tr:hover td{background:#FAFBF6}
         <h3 class="font-bold text-xs sm:text-sm text-vid">📋 OTs que Integran la N° Aplicación (Productos y Dosis)</h3>
         <span id="lblOtCount" class="text-[10px] bg-agua text-white font-bold px-2 py-0.5 rounded-md">0 OTs encontradas</span>
       </div>
-      <p class="text-[11px] text-slate-500 mb-1">Muestra los agroquímicos retirados de Almacén con sus dosis/Ha correspondientes a esta N° Aplicación.</p>
+      <p class="text-[11px] text-slate-500 mb-1">Muestra las órdenes de trabajo retiradas de Almacén con sus productos y dosis/Ha para esta N° Aplicación.</p>
       <div id="cobOtTable" class="card overflow-auto max-h-[50vh]"></div>
     </div>
   </section>
@@ -518,10 +518,17 @@ function updateDynamicSelects() {
 
   fill('rvpLote', 'Todos los Lotes', uniq([].concat(S.d.alm, S.d.apl), 'lote'));
 
-  // Desplegables simples para Cobertura Lote
+  // Desplegables para Cobertura Lote
   const listLotesCob = Object.keys(HA_OFICIAL_LOTES).concat(uniq([].concat(S.d.alm, S.d.apl), 'lote'));
   fill('cobLote', 'Selecciona un Lote…', [...new Set(listLotesCob)].sort());
-  fill('cobNAplic', 'Todas las N° Aplicación', uniq([].concat(S.d.alm, S.d.apl), '_naplic'));
+
+  // Actualizar N° Aplicación filtrado dinámicamente si se seleccionó Lote
+  const cobLoteVal = $('cobLote').value;
+  const filteredNAplic = cobLoteVal 
+    ? uniq([].concat(S.d.alm, S.d.apl).filter(r => g(r, 'lote') === cobLoteVal), '_naplic')
+    : uniq([].concat(S.d.alm, S.d.apl), '_naplic');
+
+  fill('cobNAplic', 'Todas las N° Aplicación', filteredNAplic);
 }
 
 const badge = (t, c) => `<span class="px-2 py-0.5 rounded-full text-xs font-semibold ${c}">${esc(t)}</span>`;
@@ -610,88 +617,71 @@ function rDash() {
   chart('c2', 'bar', top.map(x => x[0]), top.map(x => +x[1].toFixed(1)), '#2E6B4A');
 }
 
-/* FUNCION APARTADO EXCLUSIVO: COBERTURA POR N° APLICACIÓN Y DETALLE INFERIOR DE OTs */
+/* FUNCION APARTADO EXCLUSIVO: COBERTURA AJUSTADA A FÓRMULA SOLICITADA */
 function rCob() {
   const loteSel = $('cobLote').value;
   const nAplicSel = $('cobNAplic').value;
 
-  // Filtrar dataset de Almacén (Retiros por N° Aplicación)
+  // 1. HA TOTALES OFICIALES DEL LOTE (Extraídas de Ha.xlsx)
+  let haTotalesLote = 0;
+  if (loteSel) {
+    haTotalesLote = HA_OFICIAL_LOTES[loteSel] || 0;
+  }
+  
+  // Si no selecciona un lote específico, suma las Ha oficiales de todos los lotes
+  if (haTotalesLote === 0) {
+    haTotalesLote = Object.values(HA_OFICIAL_LOTES).reduce((a, b) => a + b, 0);
+  }
+
+  // Filtrar OTs de Almacén para el Lote y N° Aplicación seleccionada
   const almFilter = S.d.alm.filter(r => (!loteSel || g(r, 'lote') === loteSel) && (!nAplicSel || r._naplic === nAplicSel));
 
-  // Filtrar dataset de Aplicaciones (Ejecutadas por N° Aplicación)
-  const aplFilter = S.d.apl.filter(r => (!loteSel || g(r, 'lote') === loteSel) && (!nAplicSel || r._naplic === nAplicSel));
+  // 2. SUMA DE HA DEL NÚMERO DE APLICACIÓN (Suma de OTs retiradas para esa N° Aplicación)
+  const sumaHaAplicacion = almFilter.reduce((s, r) => s + num(g(r, 'haaplic')), 0);
 
-  // Cálculo de Ha Programadas según N° Aplicación
-  let haProgTotal = 0;
-  if (loteSel) {
-    haProgTotal = HA_OFICIAL_LOTES[loteSel] || 0;
-  }
-  if (haProgTotal === 0) {
-    const lotesMap = {};
-    almFilter.forEach(r => {
-      const l = g(r, 'lote');
-      const ha = num(g(r, 'haaplic'));
-      if (l) lotesMap[l] = Math.max(lotesMap[l] || 0, HA_OFICIAL_LOTES[l] || ha);
-    });
-    haProgTotal = Object.values(lotesMap).reduce((a, b) => a + b, 0);
-  }
+  // 3. HA FALTANTES POR APLICAR = TOTAL HA OFICIAL LOTE - SUMA HA N° APLICACIÓN
+  const haFaltantes = Math.max(0, haTotalesLote - sumaHaAplicacion);
 
-  // Hectáreas Reales Aplicadas en esa N° Aplicación
-  const haAplicTotal = aplFilter.reduce((s, r) => s + num(g(r, 'haaplicadas')), 0);
-  const haFaltantes = Math.max(0, haProgTotal - haAplicTotal);
-  const pctAvance = haProgTotal > 0 ? Math.min(100, ((haAplicTotal / haProgTotal) * 100)).toFixed(1) : (haAplicTotal > 0 ? 100 : 0);
+  // 4. PORCENTAJE DE COBERTURA = (SUMA HA N° APLICACIÓN / TOTAL HA LOTE) * 100
+  const pctCobertura = haTotalesLote > 0 ? Math.min(100, ((sumaHaAplicacion / haTotalesLote) * 100)).toFixed(1) : 0;
 
-  $('cobK1').textContent = haProgTotal.toFixed(2) + ' Ha';
-  $('cobK2').textContent = haAplicTotal.toFixed(2) + ' Ha';
+  // Asignar a tarjetas KPI superiores
+  $('cobK1').textContent = haTotalesLote.toFixed(2) + ' Ha';
+  $('cobK2').textContent = sumaHaAplicacion.toFixed(2) + ' Ha';
   $('cobK3').textContent = haFaltantes.toFixed(2) + ' Ha';
-  $('cobK4').textContent = pctAvance + '%';
+  $('cobK4').textContent = pctCobertura + '%';
 
   // Barra de progreso
-  $('cobBarPct').textContent = pctAvance + '%';
-  $('cobBarFill').style.width = pctAvance + '%';
-  if (pctAvance >= 98) {
+  $('cobBarPct').textContent = pctCobertura + '%';
+  $('cobBarFill').style.width = pctCobertura + '%';
+  if (pctCobertura >= 98) {
     $('cobBarFill').className = 'bg-green-600 h-3.5 rounded-full transition-all duration-500';
-  } else if (pctAvance >= 50) {
+  } else if (pctCobertura >= 50) {
     $('cobBarFill').className = 'bg-amber-500 h-3.5 rounded-full transition-all duration-500';
   } else {
     $('cobBarFill').className = 'bg-red-500 h-3.5 rounded-full transition-all duration-500';
   }
 
-  // TABLA 1: Resumen de Ha Programadas vs Ejecutadas por Lote y N° Aplicación
-  const mapLotes = {};
+  // TABLA 1: Resumen de Ha Totales vs Suma Ha N° Aplicación por Lote y N° Aplicación
+  const mapResumen = {};
   almFilter.forEach(r => {
     const lKey = g(r, 'lote');
     const key = `${lKey}_${r._naplic}`;
-    if (!mapLotes[key]) {
-      const haLote = HA_OFICIAL_LOTES[lKey] || num(g(r, 'haaplic'));
-      mapLotes[key] = {
+    if (!mapResumen[key]) {
+      const haOfic = HA_OFICIAL_LOTES[lKey] || num(g(r, 'haaplic'));
+      mapResumen[key] = {
         lote: lKey,
         nAplic: r._naplic,
-        haProg: haLote,
-        haReal: 0
+        haTotales: haOfic,
+        sumaHaAplic: 0
       };
     }
+    mapResumen[key].sumaHaAplic += num(g(r, 'haaplic'));
   });
 
-  aplFilter.forEach(r => {
-    const lKey = g(r, 'lote');
-    const key = `${lKey}_${r._naplic}`;
-    if (mapLotes[key]) {
-      mapLotes[key].haReal += num(g(r, 'haaplicadas'));
-    } else {
-      const haLote = HA_OFICIAL_LOTES[lKey] || num(g(r, 'haaplicadas'));
-      mapLotes[key] = {
-        lote: lKey,
-        nAplic: r._naplic,
-        haProg: haLote,
-        haReal: num(g(r, 'haaplicadas'))
-      };
-    }
-  });
-
-  const rowsData = Object.values(mapLotes).map(item => {
-    const falt = Math.max(0, item.haProg - item.haReal);
-    const pct = item.haProg > 0 ? ((item.haReal / item.haProg) * 100).toFixed(1) : 100;
+  const rowsData = Object.values(mapResumen).map(item => {
+    const falt = Math.max(0, item.haTotales - item.sumaHaAplic);
+    const pct = item.haTotales > 0 ? ((item.sumaHaAplic / item.haTotales) * 100).toFixed(1) : 0;
     return { ...item, falt, pct };
   }).sort((a, b) => b.falt - a.falt);
 
@@ -704,8 +694,8 @@ function rCob() {
   $('cobT').innerHTML = table([
     ['Lote', r => `<b>${esc(r.lote)}</b>`],
     ['N° Aplicación', r => `<b>${esc(r.nAplic || '—')}</b>`],
-    ['Ha Programadas', r => `${num(r.haProg).toFixed(2)} Ha`],
-    ['Ha Aplicadas', r => `<b>${num(r.haReal).toFixed(2)} Ha</b>`],
+    ['Ha Totales Lote', r => `${num(r.haTotales).toFixed(2)} Ha`],
+    ['Suma Ha N° Aplic.', r => `<b>${num(r.sumaHaAplic).toFixed(2)} Ha</b>`],
     ['Ha Faltantes', r => `<b class="text-amber-600">${num(r.falt).toFixed(2)} Ha</b>`],
     ['% Cobertura', r => `${r.pct}%`],
     ['Estado', r => stBadge(r.pct)]
