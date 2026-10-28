@@ -21,8 +21,7 @@ tailwind.config={
 .tab{padding:.5rem .8rem;border-radius:.6rem;font-weight:600;color:#C9D3C0;white-space:nowrap;font-size:.8rem}
 .tab.on{background:#F5F6F1;color:#23281F}
 .inp{border:1px solid #D6DBCB;border-radius:.6rem;padding:.45rem .65rem;background:#fff;font-size:.8rem;min-width:0;width:100%}
-.inp-multi{border:1px solid #D6DBCB;border-radius:.6rem;padding:.3rem .5rem;background:#fff;font-size:.78rem;min-width:0;width:100%;height:4.5rem}
-.inp:focus-visible,.inp-multi:focus-visible,.tab:focus-visible,button:focus-visible{outline:2px solid #E0A526;outline-offset:2px}
+.inp:focus-visible,.tab:focus-visible,button:focus-visible{outline:2px solid #E0A526;outline-offset:2px}
 th{position:sticky;top:0;background:#ECEFE4;text-align:left;padding:.5rem .65rem;font-size:.7rem;color:#4b5442;font-weight:600;white-space:nowrap}
 td{padding:.45rem .65rem;border-top:1px solid #E4E8DA;white-space:nowrap;font-size:.78rem}
 tr:hover td{background:#FAFBF6}
@@ -104,36 +103,33 @@ tr:hover td{background:#FAFBF6}
 
 <main class="max-w-7xl mx-auto px-3 py-3">
 
-  <!-- APARTADO EXCLUSIVO: CONTROL DE COBERTURA Y DETALLE DE OTs POR LOTE -->
+  <!-- MÓDULO EXCLUSIVO: COBERTURA Y DETALLE POR LOTE / N° APLICACIÓN -->
   <section id="v-cob" class="hidden space-y-4">
     <div class="card p-3 bg-white space-y-2">
-      <div class="flex justify-between items-center">
-        <h2 class="font-extrabold text-sm text-vid flex items-center gap-1">🎯 Cobertura de Aplicación y Hectáreas Faltantes por Lote</h2>
-        <span class="text-[10px] bg-amber-100 text-amber-900 font-semibold px-2 py-0.5 rounded-full">💡 Usa Ctrl / Cmd para seleccionar múltiples opciones</span>
-      </div>
+      <h2 class="font-extrabold text-sm text-vid flex items-center gap-1">🎯 Cobertura de Aplicación por N° de Aplicación (Retiro)</h2>
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
         <div>
-          <label class="text-[11px] text-slate-600 font-bold">1. Selecciona Lote(s):</label>
-          <select id="cobLote" class="inp-multi mt-0.5" multiple></select>
+          <label class="text-xs text-slate-500 font-semibold">1. Selecciona Lote:</label>
+          <select id="cobLote" class="inp mt-0.5"><option value="">Selecciona un Lote…</option></select>
         </div>
         <div>
-          <label class="text-[11px] text-slate-600 font-bold">2. Selecciona N° Aplicación(es):</label>
-          <select id="cobNAplic" class="inp-multi mt-0.5" multiple></select>
+          <label class="text-xs text-slate-500 font-semibold">2. Selecciona N° Aplicación:</label>
+          <select id="cobNAplic" class="inp mt-0.5"><option value="">Todas las N° Aplicación</option></select>
         </div>
         <div class="flex items-end">
-          <button id="btnCleanCOB" class="btn-clean w-full !py-2">🧹 Limpiar Selección de Lotes</button>
+          <button id="btnCleanCOB" class="btn-clean w-full">🧹 Limpiar Filtros</button>
         </div>
       </div>
     </div>
 
-    <!-- Tarjetas KPI de Cobertura -->
+    <!-- Tarjetas KPI de Cobertura por N° Aplicación -->
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
       <div class="card p-3 border-l-4 border-l-blue-600">
-        <p class="text-[10px] text-slate-500">Ha Oficial Lote</p>
+        <p class="text-[10px] text-slate-500">Ha Programadas (N° Aplic.)</p>
         <p id="cobK1" class="text-2xl font-extrabold">0.00 <span class="text-xs font-normal">Ha</span></p>
       </div>
       <div class="card p-3 border-l-4 border-l-vid">
-        <p class="text-[10px] text-slate-500">Ha Aplicadas (Avanzadas)</p>
+        <p class="text-[10px] text-slate-500">Ha Aplicadas (Ejecutadas)</p>
         <p id="cobK2" class="text-2xl font-extrabold">0.00 <span class="text-xs font-normal">Ha</span></p>
       </div>
       <div class="card p-3 border-l-4 border-l-amber-500">
@@ -141,7 +137,7 @@ tr:hover td{background:#FAFBF6}
         <p id="cobK3" class="text-2xl font-extrabold text-amber-600">0.00 <span class="text-xs font-normal">Ha</span></p>
       </div>
       <div class="card p-3 border-l-4 border-l-purple-600">
-        <p class="text-[10px] text-slate-500">% Porcentaje Avance</p>
+        <p class="text-[10px] text-slate-500">% Porcentaje Cobertura</p>
         <p id="cobK4" class="text-2xl font-extrabold">0%</p>
       </div>
     </div>
@@ -149,7 +145,7 @@ tr:hover td{background:#FAFBF6}
     <!-- Barra de Progreso Visual -->
     <div class="card p-3 bg-white space-y-1">
       <div class="flex justify-between items-center text-xs font-bold">
-        <span>Progreso de Cobertura Fitosanitaria:</span>
+        <span>Progreso de Cobertura del Lote en la N° Aplicación:</span>
         <span id="cobBarPct" class="text-vid">0%</span>
       </div>
       <div class="w-full bg-slate-200 rounded-full h-3.5 overflow-hidden">
@@ -159,17 +155,17 @@ tr:hover td{background:#FAFBF6}
 
     <!-- Tabla 1: Resumen del Lote -->
     <div class="space-y-2">
-      <h3 class="font-semibold text-xs sm:text-sm">Resumen de Cobertura por Lote y N° Aplicación</h3>
+      <h3 class="font-semibold text-xs sm:text-sm">Resumen de Ha Programadas vs Ejecutadas por N° Aplicación</h3>
       <div id="cobT" class="card overflow-auto max-h-[40vh]"></div>
     </div>
 
-    <!-- Tabla 2: Detalle de las Órdenes de Trabajo (OT) y Productos Químicos en la parte inferior -->
+    <!-- Tabla 2: Detalle Inferior de OTs, Productos Químicos y Dosis -->
     <div class="space-y-2 bg-white p-3 rounded-lg border border-slate-200 shadow-sm">
       <div class="flex justify-between items-center">
-        <h3 class="font-bold text-xs sm:text-sm text-vid">📋 Detalle de OTs, Productos Químicos y Dosis Correspondientes</h3>
+        <h3 class="font-bold text-xs sm:text-sm text-vid">📋 OTs que Integran la N° Aplicación (Productos y Dosis)</h3>
         <span id="lblOtCount" class="text-[10px] bg-agua text-white font-bold px-2 py-0.5 rounded-md">0 OTs encontradas</span>
       </div>
-      <p class="text-[11px] text-slate-500 mb-1">Lista de OTs que respaldan las hectáreas del lote con sus insumos y dosis/Ha.</p>
+      <p class="text-[11px] text-slate-500 mb-1">Muestra los agroquímicos retirados de Almacén con sus dosis/Ha correspondientes a esta N° Aplicación.</p>
       <div id="cobOtTable" class="card overflow-auto max-h-[50vh]"></div>
     </div>
   </section>
@@ -204,9 +200,9 @@ tr:hover td{background:#FAFBF6}
   <!-- VISTA: LLEGADA MAQUINARIA -->
   <section id="v-ll" class="hidden space-y-2.5">
     <div class="flex flex-col sm:flex-row gap-2">
-      <div class="sm:w-56"><label class="text-[10px] font-bold text-slate-500">Fundos (Multi):</label><select id="llFundo" class="inp-multi" multiple></select></div>
-      <div class="flex-1"><label class="text-[10px] font-bold text-slate-500">Buscar operador o tractor:</label><input id="llQ" class="inp mt-1" placeholder="Buscar tractor u operador…"></div>
-      <div class="flex items-end"><button id="btnCleanLL" class="btn-clean">🧹 Limpiar</button></div>
+      <select id="llFundo" class="inp sm:w-48"></select>
+      <input id="llQ" class="inp flex-1" placeholder="Buscar tractor u operador…">
+      <button id="btnCleanLL" class="btn-clean">🧹 Limpiar</button>
     </div>
     <div id="llT" class="card overflow-auto max-h-[70vh]"></div>
   </section>
@@ -214,10 +210,10 @@ tr:hover td{background:#FAFBF6}
   <!-- VISTA: CONTROL EPP -->
   <section id="v-epp" class="hidden space-y-2.5">
     <div class="flex flex-col sm:flex-row gap-2">
-      <div class="sm:w-44"><label class="text-[10px] font-bold text-slate-500">Tipo Personal:</label><select id="eTipo" class="inp"><option value="">Todos</option><option value="VEEDOR">Veedor</option><option value="TRACTORISTA">Tractorista</option></select></div>
-      <div class="sm:w-44"><label class="text-[10px] font-bold text-slate-500">Estado Devolución:</label><select id="eEst" class="inp"><option value="">Todos</option><option value="P">Pendiente</option><option value="D">Devuelto</option></select></div>
-      <div class="flex-1"><label class="text-[10px] font-bold text-slate-500">Trabajador:</label><input id="eQ" class="inp" placeholder="Nombre o código…"></div>
-      <div class="flex items-end"><button id="btnCleanEPP" class="btn-clean">🧹 Limpiar</button></div>
+      <select id="eTipo" class="inp sm:w-44"><option value="">Veedor y Tractorista</option><option value="VEEDOR">Veedor</option><option value="TRACTORISTA">Tractorista</option></select>
+      <select id="eEst" class="inp sm:w-44"><option value="">Todos los estados</option><option value="P">Pendiente devolución</option><option value="D">Devuelto</option></select>
+      <input id="eQ" class="inp flex-1" placeholder="Nombre o código de trabajador…">
+      <button id="btnCleanEPP" class="btn-clean">🧹 Limpiar</button>
     </div>
     <div id="eT" class="card overflow-auto max-h-[70vh]"></div>
   </section>
@@ -228,11 +224,14 @@ tr:hover td{background:#FAFBF6}
       <button class="sub on inp !w-auto font-semibold" data-sub="hid">Hidrollenados</button>
       <button class="sub inp !w-auto font-semibold" data-sub="apl">Aplicaciones</button>
     </div>
-    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
-      <div><label class="text-[10px] font-bold text-slate-500">Turno:</label><select id="hTurnoSec" class="inp"><option value="">Todos turnos</option><option>Día</option><option>Tarde</option><option>Madrugada</option></select></div>
-      <div><label class="text-[10px] font-bold text-slate-500">Lote(s):</label><select id="hLote" class="inp-multi" multiple></select></div>
-      <div><label class="text-[10px] font-bold text-slate-500">Tractor(es):</label><select id="hTr" class="inp-multi" multiple></select></div>
-      <div class="col-span-2 sm:col-span-1"><label class="text-[10px] font-bold text-slate-500">Buscar OT:</label><input id="hOT" class="inp" placeholder="Nro OT"></div>
+    <div class="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
+      <select id="hTurnoSec" class="inp"><option value="">Todos turnos</option><option>Día</option><option>Tarde</option><option>Madrugada</option></select>
+      <select id="hLote" class="inp"></select>
+      <select id="hCult" class="inp"></select>
+      <select id="hTr" class="inp"></select>
+      <input id="hOT" class="inp" placeholder="Nro OT">
+      <select id="hCum" class="inp"></select>
+      <button id="btnCleanHID" class="btn-clean col-span-2 sm:col-span-1">🧹 Limpiar</button>
     </div>
     <div id="hT" class="card overflow-auto max-h-[70vh]"></div>
   </section>
@@ -248,11 +247,13 @@ tr:hover td{background:#FAFBF6}
       <h3 class="font-semibold text-xs sm:text-sm mb-1">Insumos Retirados de Almacén (L / Kg)</h3>
       <div class="h-52 sm:h-64"><canvas id="cA1"></canvas></div>
     </div>
-    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
-      <div><label class="text-[10px] font-bold text-slate-500">Lote(s):</label><select id="aLote" class="inp-multi" multiple></select></div>
-      <div><label class="text-[10px] font-bold text-slate-500">N° Aplicación(es):</label><select id="aNAplic" class="inp-multi" multiple></select></div>
-      <div><label class="text-[10px] font-bold text-slate-500">Producto(s):</label><select id="aProd" class="inp-multi" multiple></select></div>
-      <div><label class="text-[10px] font-bold text-slate-500">Estado OT:</label><select id="aEst" class="inp"><option value="">Todos Estados</option><option value="EJECUTADO">EJECUTADO</option><option value="APROBADO">APROBADO</option></select></div>
+    <div class="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
+      <select id="aLote" class="inp"><option value="">Todos Lotes</option></select>
+      <select id="aNAplic" class="inp"><option value="">Todas N° Aplic.</option></select>
+      <select id="aProd" class="inp"><option value="">Todos Productos</option></select>
+      <select id="aEst" class="inp"><option value="">Todos Estados</option><option value="EJECUTADO">EJECUTADO</option><option value="APROBADO">APROBADO</option></select>
+      <input id="aOT" class="inp" placeholder="Nro OT">
+      <button id="btnCleanALM" class="btn-clean col-span-2 sm:col-span-1">🧹 Limpiar</button>
     </div>
     <div id="aT" class="card overflow-auto max-h-[60vh]"></div>
   </section>
@@ -284,9 +285,9 @@ tr:hover td{background:#FAFBF6}
     </div>
 
     <div class="flex flex-col sm:flex-row gap-2">
-      <div class="sm:w-64"><label class="text-[10px] font-bold text-slate-500">Lote(s) Multi-Selección:</label><select id="rvpLote" class="inp-multi" multiple></select></div>
-      <div class="flex-1"><label class="text-[10px] font-bold text-slate-500">N° OT:</label><input id="rvpOT" class="inp mt-1" placeholder="Buscar por N° OT…"></div>
-      <div class="flex items-end"><button id="btnCleanRVP" class="btn-clean">🧹 Limpiar Filtros</button></div>
+      <select id="rvpLote" class="inp sm:w-48"><option value="">Todos los Lotes</option></select>
+      <input id="rvpOT" class="inp flex-1" placeholder="Buscar por N° OT…">
+      <button id="btnCleanRVP" class="btn-clean">🧹 Limpiar Filtros</button>
     </div>
 
     <div id="rvpT" class="card overflow-auto max-h-[60vh]"></div>
@@ -364,12 +365,6 @@ const g = (r, k) => r[norm(k)] ?? '';
 const num = v => parseFloat(String(v).replace(',', '.')) || 0;
 const pad = n => String(n).padStart(2, '0');
 const ymd = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-
-function getSelectedValues(id) {
-  const el = $(id);
-  if (!el) return [];
-  return Array.from(el.selectedOptions).map(o => o.value).filter(Boolean);
-}
 
 function fd(v) {
   v = String(v ?? '').trim(); if (!v) return '';
@@ -493,22 +488,23 @@ const base = (rows, byTurno = true) => rows.filter(r => {
 
 const uniq = (rows, k) => [...new Set(rows.map(r => String(g(r, k)).trim()).filter(Boolean))].sort();
 
-function fillMulti(id, vals) {
-  const el = $(id);
-  if (!el) return;
-  const selectedBefore = getSelectedValues(id);
-  el.innerHTML = vals.map(v => `<option value="${esc(v)}" ${selectedBefore.includes(v) ? 'selected' : ''}>${esc(v)}</option>`).join('');
+function fill(id, first, vals) { 
+  const el = $(id), cur = el.value; 
+  el.innerHTML = `<option value="">${first}</option>` + vals.map(v => `<option value="${esc(v)}">${esc(v)}</option>`).join(''); 
+  el.value = vals.includes(cur) ? cur : ''; 
 }
 
 function updateDynamicSelects() {
-  fillMulti('llFundo', uniq(base(S.d.ll), 'fundo'));
+  fill('llFundo', 'Todos los fundos', uniq(base(S.d.ll), 'fundo'));
   const targetDataset = S.sub === 'hid' ? base(S.d.hid) : base(S.d.apl);
-  fillMulti('hLote', uniq(targetDataset, 'lote'));
-  fillMulti('hTr', uniq(targetDataset, 'tractor'));
+  fill('hLote', 'Todos los lotes', uniq(targetDataset, 'lote'));
+  fill('hCult', 'Todos los cultivos', uniq(targetDataset, 'cultivo'));
+  fill('hTr', 'Todos los tractores', uniq(targetDataset, 'tractor'));
+  fill('hCum', 'Todo cumplimiento', uniq(targetDataset, 'cumplimiento'));
 
   const almData = S.date ? base(S.d.alm) : S.d.alm;
-  fillMulti('aLote', uniq(almData, 'lote'));
-  fillMulti('aNAplic', uniq(almData, '_naplic'));
+  fill('aLote', 'Todos los Lotes', uniq(almData, 'lote'));
+  fill('aNAplic', 'Todas N° Aplic.', uniq(almData, '_naplic'));
 
   const prods = new Set();
   almData.forEach(r => {
@@ -518,13 +514,14 @@ function updateDynamicSelects() {
       if (clean) prods.add(clean);
     });
   });
-  fillMulti('aProd', [...prods].sort());
-  fillMulti('rvpLote', uniq([].concat(S.d.alm, S.d.apl), 'lote'));
+  fill('aProd', 'Todos los Productos', [...prods].sort());
 
-  // Multi-selects del Módulo de Cobertura Lote
+  fill('rvpLote', 'Todos los Lotes', uniq([].concat(S.d.alm, S.d.apl), 'lote'));
+
+  // Desplegables simples para Cobertura Lote
   const listLotesCob = Object.keys(HA_OFICIAL_LOTES).concat(uniq([].concat(S.d.alm, S.d.apl), 'lote'));
-  fillMulti('cobLote', [...new Set(listLotesCob)].sort());
-  fillMulti('cobNAplic', uniq([].concat(S.d.alm, S.d.apl), '_naplic'));
+  fill('cobLote', 'Selecciona un Lote…', [...new Set(listLotesCob)].sort());
+  fill('cobNAplic', 'Todas las N° Aplicación', uniq([].concat(S.d.alm, S.d.apl), '_naplic'));
 }
 
 const badge = (t, c) => `<span class="px-2 py-0.5 rounded-full text-xs font-semibold ${c}">${esc(t)}</span>`;
@@ -613,49 +610,38 @@ function rDash() {
   chart('c2', 'bar', top.map(x => x[0]), top.map(x => +x[1].toFixed(1)), '#2E6B4A');
 }
 
-/* FUNCION APARTADO EXCLUSIVO: COBERTURA Y TABLA INFERIOR DE OTs POR LOTE Y APLICACION */
+/* FUNCION APARTADO EXCLUSIVO: COBERTURA POR N° APLICACIÓN Y DETALLE INFERIOR DE OTs */
 function rCob() {
-  const lotesSel = getSelectedValues('cobLote');
-  const nAplicSel = getSelectedValues('cobNAplic');
+  const loteSel = $('cobLote').value;
+  const nAplicSel = $('cobNAplic').value;
 
-  // Hectáreas Oficiales Totales de Ha.xlsx
-  let haOficial = 0;
-  if (lotesSel.length > 0) {
-    lotesSel.forEach(l => {
-      haOficial += HA_OFICIAL_LOTES[l] || 0;
-    });
-  } else {
-    haOficial = Object.values(HA_OFICIAL_LOTES).reduce((a, b) => a + b, 0);
+  // Filtrar dataset de Almacén (Retiros por N° Aplicación)
+  const almFilter = S.d.alm.filter(r => (!loteSel || g(r, 'lote') === loteSel) && (!nAplicSel || r._naplic === nAplicSel));
+
+  // Filtrar dataset de Aplicaciones (Ejecutadas por N° Aplicación)
+  const aplFilter = S.d.apl.filter(r => (!loteSel || g(r, 'lote') === loteSel) && (!nAplicSel || r._naplic === nAplicSel));
+
+  // Cálculo de Ha Programadas según N° Aplicación
+  let haProgTotal = 0;
+  if (loteSel) {
+    haProgTotal = HA_OFICIAL_LOTES[loteSel] || 0;
   }
-
-  // Filtrar datasets por selección múltiple de Lote y N° Aplicación
-  const almFilter = S.d.alm.filter(r => 
-    (!lotesSel.length || lotesSel.includes(g(r, 'lote'))) && 
-    (!nAplicSel.length || nAplicSel.includes(r._naplic))
-  );
-
-  const aplFilter = S.d.apl.filter(r => 
-    (!lotesSel.length || lotesSel.includes(g(r, 'lote'))) && 
-    (!nAplicSel.length || nAplicSel.includes(r._naplic))
-  );
-
-  // Si no se encuentra en la lista oficial, calcularlo dinámicamente de Almacén
-  if (haOficial === 0) {
-    const lotesProg = {};
+  if (haProgTotal === 0) {
+    const lotesMap = {};
     almFilter.forEach(r => {
       const l = g(r, 'lote');
       const ha = num(g(r, 'haaplic'));
-      if (l) lotesProg[l] = Math.max(lotesProg[l] || 0, ha);
+      if (l) lotesMap[l] = Math.max(lotesMap[l] || 0, HA_OFICIAL_LOTES[l] || ha);
     });
-    haOficial = Object.values(lotesProg).reduce((a, b) => a + b, 0);
+    haProgTotal = Object.values(lotesMap).reduce((a, b) => a + b, 0);
   }
 
-  // Hectáreas Aplicadas Reales
+  // Hectáreas Reales Aplicadas en esa N° Aplicación
   const haAplicTotal = aplFilter.reduce((s, r) => s + num(g(r, 'haaplicadas')), 0);
-  const haFaltantes = Math.max(0, haOficial - haAplicTotal);
-  const pctAvance = haOficial > 0 ? Math.min(100, ((haAplicTotal / haOficial) * 100)).toFixed(1) : (haAplicTotal > 0 ? 100 : 0);
+  const haFaltantes = Math.max(0, haProgTotal - haAplicTotal);
+  const pctAvance = haProgTotal > 0 ? Math.min(100, ((haAplicTotal / haProgTotal) * 100)).toFixed(1) : (haAplicTotal > 0 ? 100 : 0);
 
-  $('cobK1').textContent = haOficial.toFixed(2) + ' Ha';
+  $('cobK1').textContent = haProgTotal.toFixed(2) + ' Ha';
   $('cobK2').textContent = haAplicTotal.toFixed(2) + ' Ha';
   $('cobK3').textContent = haFaltantes.toFixed(2) + ' Ha';
   $('cobK4').textContent = pctAvance + '%';
@@ -671,7 +657,7 @@ function rCob() {
     $('cobBarFill').className = 'bg-red-500 h-3.5 rounded-full transition-all duration-500';
   }
 
-  // TABLA 1: Resumen de Cobertura por Lote
+  // TABLA 1: Resumen de Ha Programadas vs Ejecutadas por Lote y N° Aplicación
   const mapLotes = {};
   almFilter.forEach(r => {
     const lKey = g(r, 'lote');
@@ -681,7 +667,7 @@ function rCob() {
       mapLotes[key] = {
         lote: lKey,
         nAplic: r._naplic,
-        haOficial: haLote,
+        haProg: haLote,
         haReal: 0
       };
     }
@@ -697,15 +683,15 @@ function rCob() {
       mapLotes[key] = {
         lote: lKey,
         nAplic: r._naplic,
-        haOficial: haLote,
+        haProg: haLote,
         haReal: num(g(r, 'haaplicadas'))
       };
     }
   });
 
   const rowsData = Object.values(mapLotes).map(item => {
-    const falt = Math.max(0, item.haOficial - item.haReal);
-    const pct = item.haOficial > 0 ? ((item.haReal / item.haOficial) * 100).toFixed(1) : 100;
+    const falt = Math.max(0, item.haProg - item.haReal);
+    const pct = item.haProg > 0 ? ((item.haReal / item.haProg) * 100).toFixed(1) : 100;
     return { ...item, falt, pct };
   }).sort((a, b) => b.falt - a.falt);
 
@@ -717,8 +703,8 @@ function rCob() {
 
   $('cobT').innerHTML = table([
     ['Lote', r => `<b>${esc(r.lote)}</b>`],
-    ['N° Aplic.', r => esc(r.nAplic || '—')],
-    ['Ha Oficial', r => `${num(r.haOficial).toFixed(2)} Ha`],
+    ['N° Aplicación', r => `<b>${esc(r.nAplic || '—')}</b>`],
+    ['Ha Programadas', r => `${num(r.haProg).toFixed(2)} Ha`],
     ['Ha Aplicadas', r => `<b>${num(r.haReal).toFixed(2)} Ha</b>`],
     ['Ha Faltantes', r => `<b class="text-amber-600">${num(r.falt).toFixed(2)} Ha</b>`],
     ['% Cobertura', r => `${r.pct}%`],
@@ -762,8 +748,8 @@ function chartGrouped(id, labels, ds1, ds2) {
 }
 
 function rLL() {
-  const fundos = getSelectedValues('llFundo'), q = $('llQ').value;
-  const rows = base(S.d.ll).filter(r => (!fundos.length || fundos.includes(g(r, 'fundo'))) && has(r, q, ['tractor', 'codtractor', 'tractorista', 'codtractorista']));
+  const f = $('llFundo').value, q = $('llQ').value;
+  const rows = base(S.d.ll).filter(r => (!f || g(r, 'fundo') === f) && has(r, q, ['tractor', 'codtractor', 'tractorista', 'codtractorista']));
   $('llT').innerHTML = table([
     ['Fecha', r => r._f],
     ['Turno', r => r._t || '—'],
@@ -791,14 +777,17 @@ function rEPP() {
 }
 
 function rHid() {
-  const hid = S.sub === 'hid', turSec = $('hTurnoSec').value, lotes = getSelectedValues('hLote'), trs = getSelectedValues('hTr'), ot = $('hOT').value.trim();
+  const hid = S.sub === 'hid', turSec = $('hTurnoSec').value, lote = $('hLote').value, cu = $('hCult').value, tr = $('hTr').value, ot = $('hOT').value.trim(), cm = $('hCum').value;
+  $('hCult').classList.toggle('hidden', hid); $('hCum').classList.toggle('hidden', !hid);
   document.querySelectorAll('.sub').forEach(b => b.classList.toggle('on', b.dataset.sub === S.sub));
   
   const rows = base(S.d[S.sub]).filter(r => 
     (!turSec || r._t === turSec) &&
-    (!lotes.length || lotes.includes(g(r, 'lote'))) && 
-    (!trs.length || trs.includes(g(r, 'tractor'))) && 
-    has(r, ot, ['nroordenot'])
+    (!lote || g(r, 'lote') === lote) && 
+    (!cu || g(r, 'cultivo') === cu) && 
+    (!tr || g(r, 'tractor') === tr) && 
+    has(r, ot, ['nroordenot']) && 
+    (!cm || g(r, 'cumplimiento') === cm)
   );
   
   const cum = r => { const v = g(r, 'cumplimiento'); return v ? badge(v, /^no|incump/i.test(v) ? R : /cumpl|si|ok/i.test(v) ? G : Y) : '—'; };
@@ -831,14 +820,15 @@ function rHid() {
 }
 
 function rAlm() {
-  const est = $('aEst').value, lotes = getSelectedValues('aLote'), nAplica = getSelectedValues('aNAplic'), prods = getSelectedValues('aProd');
+  const est = $('aEst').value, lote = $('aLote').value, nA = $('aNAplic').value, prod = $('aProd').value, ot = $('aOT').value.trim();
   const srcData = S.date ? base(S.d.alm) : S.d.alm;
 
   const rows = srcData.filter(r => 
     (!est || norm(g(r, 'estadoot')) === norm(est)) && 
-    (!lotes.length || lotes.includes(g(r, 'lote'))) && 
-    (!nAplica.length || nAplica.includes(String(r._naplic))) &&
-    (!prods.length || prods.some(p => norm(g(r, 'nombreproductodosis_ha')).includes(norm(p))))
+    (!lote || g(r, 'lote') === lote) && 
+    (!nA || String(r._naplic) === String(nA)) &&
+    (!prod || norm(g(r, 'nombreproductodosis_ha')).includes(norm(prod))) &&
+    has(r, ot, ['ordentrabajo'])
   );
 
   $('aK1').textContent = rows.length;
@@ -849,12 +839,12 @@ function rAlm() {
   rows.forEach(r => {
     const pStr = String(g(r, 'nombreproductodosis_ha'));
     const tStr = String(g(r, 'total_producto'));
-    const pArr = pStr.split('/');
-    const tArr = tStr.split('/');
-    pArr.forEach((p, i) => {
+    const prods = pStr.split('/');
+    const tots = tStr.split('/');
+    prods.forEach((p, i) => {
       const name = p.replace(/\s*\([\d\.]+\)/, '').trim();
-      const val = num(tArr[i] || tArr[0]);
-      if (name && (!prods.length || prods.some(pr => norm(name).includes(norm(pr))))) {
+      const val = num(tots[i] || tots[0]);
+      if (name && (!prod || norm(name).includes(norm(prod)))) {
         byProd[name] = (byProd[name] || 0) + val;
         totVol += val;
       }
@@ -885,11 +875,11 @@ function rAlm() {
 }
 
 function rRvP() {
-  const lotes = getSelectedValues('rvpLote'), ot = $('rvpOT').value.trim();
+  const lote = $('rvpLote').value, ot = $('rvpOT').value.trim();
 
-  const almData = (S.date ? base(S.d.alm, true) : S.d.alm.filter(r => !S.turno || r._t === S.turno)).filter(r => (!lotes.length || lotes.includes(g(r, 'lote'))) && has(r, ot, ['ordentrabajo']));
-  const aplData = (S.date ? base(S.d.apl, true) : S.d.apl.filter(r => !S.turno || r._t === S.turno)).filter(r => (!lotes.length || lotes.includes(g(r, 'lote'))) && has(r, ot, ['nro_ordenot']));
-  const hidData = (S.date ? base(S.d.hid, true) : S.d.hid.filter(r => !S.turno || r._t === S.turno)).filter(r => (!lotes.length || lotes.includes(g(r, 'lote'))) && has(r, ot, ['nroordenot']));
+  const almData = (S.date ? base(S.d.alm, true) : S.d.alm.filter(r => !S.turno || r._t === S.turno)).filter(r => (!lote || g(r, 'lote') === lote) && has(r, ot, ['ordentrabajo']));
+  const aplData = (S.date ? base(S.d.apl, true) : S.d.apl.filter(r => !S.turno || r._t === S.turno)).filter(r => (!lote || g(r, 'lote') === lote) && has(r, ot, ['nro_ordenot']));
+  const hidData = (S.date ? base(S.d.hid, true) : S.d.hid.filter(r => !S.turno || r._t === S.turno)).filter(r => (!lote || g(r, 'lote') === lote) && has(r, ot, ['nroordenot']));
 
   const haProg = almData.reduce((s, r) => s + num(g(r, 'haaplic')), 0);
   const haReal = aplData.reduce((s, r) => s + num(g(r, 'haaplicadas')), 0);
@@ -1020,17 +1010,17 @@ $('gAll').onclick = () => { S.date = ''; render(); };
 $('gTurno').onchange = e => { S.turno = e.target.value; render(); };
 $('turnos').onclick = e => { const b = e.target.closest('[data-turno]'); if (b) { S.turno = S.turno === b.dataset.turno ? '' : b.dataset.turno; render(); } };
 
-$('btnCleanLL').onclick = () => { $('llFundo').selectedIndex = -1; $('llQ').value = ''; render(); };
+$('btnCleanLL').onclick = () => { $('llFundo').value = ''; $('llQ').value = ''; render(); };
 $('btnCleanEPP').onclick = () => { $('eTipo').value = ''; $('eEst').value = ''; $('eQ').value = ''; render(); };
-$('btnCleanHID').onclick = () => { $('hTurnoSec').value = ''; $('hLote').selectedIndex = -1; $('hTr').selectedIndex = -1; $('hOT').value = ''; render(); };
-$('btnCleanALM').onclick = () => { $('aLote').selectedIndex = -1; $('aNAplic').selectedIndex = -1; $('aProd').selectedIndex = -1; $('aEst').value = ''; render(); };
-$('btnCleanRVP').onclick = () => { $('rvpLote').selectedIndex = -1; $('rvpOT').value = ''; render(); };
+$('btnCleanHID').onclick = () => { $('hTurnoSec').value = ''; $('hLote').value = ''; $('hCult').value = ''; $('hTr').value = ''; $('hOT').value = ''; $('hCum').value = ''; render(); };
+$('btnCleanALM').onclick = () => { $('aLote').value = ''; $('aNAplic').value = ''; $('aProd').value = ''; $('aEst').value = ''; $('aOT').value = ''; render(); };
+$('btnCleanRVP').onclick = () => { $('rvpLote').value = ''; $('rvpOT').value = ''; render(); };
 $('btnCleanMES').onclick = () => { $('mStart').value = '1'; $('mEnd').value = '12'; render(); };
-$('btnCleanCOB').onclick = () => { $('cobLote').selectedIndex = -1; $('cobNAplic').selectedIndex = -1; render(); };
+$('btnCleanCOB').onclick = () => { $('cobLote').value = ''; $('cobNAplic').value = ''; render(); };
 
-['llFundo', 'llQ', 'eTipo', 'eEst', 'eQ', 'hTurnoSec', 'hLote', 'hTr', 'hOT', 'aLote', 'aNAplic', 'aProd', 'aEst', 'rvpLote', 'rvpOT', 'mStart', 'mEnd', 'mAnno', 'cobLote', 'cobNAplic'].forEach(id => {
+['llFundo', 'llQ', 'eTipo', 'eEst', 'eQ', 'hTurnoSec', 'hLote', 'hCult', 'hTr', 'hOT', 'hCum', 'aLote', 'aNAplic', 'aProd', 'aEst', 'aOT', 'rvpLote', 'rvpOT', 'mStart', 'mEnd', 'mAnno', 'cobLote', 'cobNAplic'].forEach(id => {
   const el = $(id);
-  if (el) el.addEventListener('change', render);
+  if (el) el.addEventListener('input', render);
 });
 
 load();
